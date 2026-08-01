@@ -11,7 +11,7 @@ def install_skills(source_dir, target_dcode, target_claude):
     print(f"Scanning for skills in: {os.path.abspath(source_dir)}")
     
     # Define what constitutes a 'skill' - e.g., presence of SKILL.md or similar
-    # For this implementation, we look for any directory containing a .md file 
+    # For this implementation, we look for any directory containing a .md file
     # that might be a skill definition.
     
     skills_found = []
@@ -42,7 +42,6 @@ def install_skills(source_dir, target_dcode, target_claude):
 
     for skill_root, skill_name in skills_found:
         # 1. Install for DeepAgents dcode
-        # Assuming dcode expects skills in a specific structure like ~/.deepagents/agent/skills/
         dcode_dest = os.path.join(target_dcode, skill_name)
         try:
             os.makedirs(os.path.dirname(dcode_dest), exist_ok=True)
@@ -53,7 +52,6 @@ def install_skills(source_dir, target_dcode, target_claude):
                     os.remove(dcode_dest)
             
             # Copy the skill directory (or just the relevant files)
-            # For simplicity, we copy the folder containing the skill definition
             shutil.copytree(skill_root, dcode_dest, dirs_exist_ok=True)
             print(f"  [dcode] Installed: {skill_name}")
         except Exception as e:
@@ -72,6 +70,7 @@ def install_skills(source_dir, target_dcode, target_claude):
             # Copy the skill directory
             shutil.copytree(skill_root, claude_dest, dirs_exist_ok=True)
             print(f"  [Claude] Installed: {skill_name}")
+        except Exception as e:
             print(f"  [Claude] Failed to install {skill_name}: {e}")
 
 if __name__ == "__main__":
