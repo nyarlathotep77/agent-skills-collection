@@ -72,23 +72,6 @@ def install_skills(source_dir, target_dcode, target_claude):
             # Copy the skill directory
             shutil.copytree(skill_root, claude_dest, dirs_exist_ok=True)
             print(f"  [Claude] Installed: {skill_name}")
-        except Exception as e:
-            print(f"  [Claude] Failed to install {skill_name}: {e}") Install for Claude Code
-        # Assuming Claude Code expects skills in a similar structure or a different one
-        claude_dest = os.path.join(target_claude, skill_name)
-        try:
-            os.makedirs(os.path.dirname(claude_dest), exist_ok=True)
-            if os.path.exists(claude_dest):
-                if os.path.isdir(claude_dest):
-                    shutil.rmtree(cla_dest) # Error in variable name, fixing below
-                else:
-                    os.remove(claude_dest)
-            
-            # Copy the skill directory
-            shutil.copytree(skill_root, claude_dest, dirs_exist_ok=
-                            True)
-            print(f"  [Claude] Installed: {skill_name}")
-        except Exception as e:
             print(f"  [Claude] Failed to install {skill_name}: {e}")
 
 if __name__ == "__main__":
