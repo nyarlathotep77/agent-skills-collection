@@ -1,0 +1,9 @@
+[submodule "android-skills"]
+	path = android-skills
+	url = https://github.com/android/skills
+[submodule "scientific-skills"]
+	path = scientific-skills
+	url = https://github.com/InternScience/Awesome-Scientific-Skills
+[submodule "scientific-agent-skills"]
+	path = scientific-agent-skills
+	url = https://github.com/k-dense-ai/scientific-agent-skills
