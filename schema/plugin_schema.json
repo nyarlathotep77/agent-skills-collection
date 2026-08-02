@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Plugin Marketplace Schema",
+  "description": "Defines the structure for a plugin marketplace configuration file.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "The name of the plugin/skill."
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the plugin."
+    },
+    "description": {
+      "type": "string",
+      "description": "A brief description of what the plugin does."
+    },
+    "author": {
+      "type": "string",
+      "description": "The author or organization providing the plugin."
+    },
+    "harnesses": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "deepagents",
+imit: "dcode",
+          "claude-code",
+          "generic"
+        ]
+      },
+      "description": "The agentic harnesses that this plugin is compatible with."
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of capabilities provided by this plugin (e.g., 'camera', 'navigation')."
+    },
+    "entry_points": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Mapping of capability names to their implementation paths or commands."
+    }
+  },
+  "required": [
+    "name",
+    "version",
+    "description",
+    "harnesses"
+  ]
+}
