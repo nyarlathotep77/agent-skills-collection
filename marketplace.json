@@ -1,0 +1,39 @@
+{
+  "name": "agent-skills-collection",
+  "version": "1.0.0",
+  "description": "The master marketplace for all agentic plugins and skills.",
+  "author": "Agent Skills Collection Team",
+  "plugins": [
+    {
+      "name": "android-skills",
+      "source": "./android-skills",
+      "description": "Android skills are Google's official dedicated repository of AI-optimized, modular instructions and resources, to help LLMs better understand and execute specific patterns that follow the best practices and guidance on Android development. Android skills follow the open-standard agent skills - markdown files (SKILL.md) that provide a technical specification of a task, and ground LLMs with information on specialized domains and workflows.",
+      "author": {
+        "name": "Google / Android",
+        "url": "https://github.com/android"
+      },
+      "displayName": "Android Skills"
+    },
+    {
+      "name": "kotlin-kmp-agent-skills",
+      "source": "./kotlin-kmp-claude-agent-skills",
+      "description": "AI agent skills, orchestration pipeline, and workflows for Kotlin Multiplatform projects.",
+      "author": "Mariano Miani",
+      "displayName": "Kotlin KMP Agent Skills"
+    },
+    {
+      "name": "Scientific Agent Skills Plugin",
+      "source": "./scientific-agent-skills",
+      "description": "A plugin for scanning and analyzing agent skills.",
+      "author": "Scientific Agent Skills Team",
+      "displayName": null
+    },
+    {
+      "name": "scientific-skills-plugin",
+      "source": "./scientific-skills",
+      "description": "A collection of scientific computing skills for agents.",
+      "author": "Agent Skills Collection Team",
+      "displayName": null
+    }
+  ]
+}

@@ -1,83 +1,83 @@
 #!/usr/bin/env python3
+
+import json
 import os
-import shutil
 import argparse
+import shutil
+import sys
 
-def install_skills(source_dir, target_dcode, target_claude):
-    """
-    Recursively traverses the source directory and installs skills into 
-    the specified dcode and Claude Code directories.
-    """
-    print(f"Scanning for skills in: {os.path.abspath(source_dir)}")
-    
-    # Define what constitutes a 'skill' - e.g., presence of SKILL.md or similar
-    # For this implementation, we look for any directory containing a .md file
-    # that might be a skill definition.
-    
-    skills_found = []
+def load_registry(registry_path):
+    if not os.path.exists(registry_path):
+        return []
+    with open(registry_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
 
-    for root, dirs, files in os.walk(source_dir):
-        # Skip git directories and submodules themselves to avoid infinite loops/redundancy
-        if '.git' in dirs:
-            dirs.remove('.git')
-        
-        # Check if this directory is a skill (contains a markdown file)
-        is_skill = any(f.endswith('.md') for f in files)
-        
-        if is_skill:
-            # Determine relative path from source root to identify the skill name/path
-            rel_path = os.path.relpath(root, source_dir)
-            if rel_path == ".":
-                skill_name = "root_skills"
-            else:
-                skill_name = rel_path
-            
-            skills_found.append((root, skill_name))
-
-    if not skills_found:
-        print("No skills found.")
+def list_skills(registry):
+    if not registry:
+        print("No skills available.")
         return
+    for s in registry:
+        tags = ", ".join(s.get('tags', []))
+        print(f"[{s['id']}] {s['name']} - {s.get('description', '')} (Tags: {tags})")
 
-    print(f"Found {len(skills_found)} potential skills.")
+def search_skills(registry, query):
+    q = query.lower()
+    res = [s for s in registry if q in s['name'].lower() or any(q in t.lower() for t in s.get('tags', []))]
+    if not res:
+        print(f"No matches for '{query}'")
+    else:
+        list_skills(res)
 
-    for skill_root, skill_name in skills_found:
-        # 1. Install for DeepAgents dcode
-        dcode_dest = os.path.join(target_dcode, skill_name)
-        try:
-            os.makedirs(os.path.dirname(dcode_dest), exist_ok=True)
-            if os.path.exists(dcode_dest):
-                if os.path.isdir(dcode_dest):
-                    shutil.rmtree(dcode_dest)
-                else:
-                    os.remove(dcode_dest)
-            
-            # Copy the skill directory (or just the relevant files)
-            shutil.copytree(skill_root, dcode_dest, dirs_exist_ok=True)
-            print(f"  [dcode] Installed: {skill_name}")
-        except Exception as e:
-            print(f"  [dcode] Failed to install {skill_name}: {e}")
+def install_skill(skill_id, registry, target_dir):
+    s = next((x for x in registry if x['id'] == skill_id), None)
+    if not s:
+        print(f"Error: Skill '{skill_id}' not found.")
+        return
+    found = None
+    for r, d, f in os.walk('.'):
+        if 'metadata.json' in f:
+            try:
+                with open(os.path.join(r, 'metadata.json'), 'r') as f_in:
+                    if json.load(f_in).get('id') == skill_id:
+                        found = r
+                        break
+            except:
+                continue
+    if not found:
+        print("Error: Source directory not found.")
+        return
+    dest = os.path.join(target_dir, skill_id)
+    os.makedirs(target_dir, exist_ok=True)
+    try:
+        shutil.copytree(found, dest, dirs_exist_ok=True)
+        print(f"Successfully installed '{s['name']}' to {dest}")
+    except Exception as e:
+        print(f"Error during installation: {e}")
 
-        # 2. Install for Claude Code
-        claude_dest = os.path.join(target_claude, skill_name)
-        try:
-            os.makedirs(os.path.dirname(claude_dest), exist_ok=True)
-            if os.path.exists(claude_dest):
-                if os.path.isdir(claude_dest):
-                    shutil.rmtree(claude_dest)
-                else:
-                    os.remove(claude_dest)
-            
-            # Copy the skill directory
-            shutil.copytree(skill_root, claude_dest, dirs_exist_ok=True)
-            print(f"  [Claude] Installed: {skill_name}")
-        except Exception as e:
-            print(f"  [Claude] Failed to install {skill_name}: {e}")
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Install skills for dcode and Claude Code.")
-    parser.add_argument("--source", required=True, help="Source directory containing submodules/skills")
-    parser.add_argument("--dcode-path", required=True, help="Target path for DeepAgents dcode skills")
-    parser.add_argument("--claude-path", required=True, help="Target path for Claude Code skills")
+def main():
+    parser = argparse.ArgumentParser(description='Skill Marketplace CLI')
+    parser.add_argument('--registry', default='registry.json', help='Path to registry.json')
+    parser.add_argument('--target', default='./installed_skills', help='Directory to install skills into')
+    subparsers = parser.add_subparsers(dest='cmd')
+    subparsers.add_parser('list', help='List all available skills')
+    search_p = subparsers.add_parser('search', help='Search skills by name or tag')
+    search_p.add_argument('query', type=str, help='Search term')
+    install_p = subparsers.add_parser('install', help='Install a skill by ID')
+    install_p.add_argument('skill_id', type=str, help='ID of the skill to install')
 
     args = parser.parse_args()
-    install_skills(args.source, args.dcode_path, args.claude_path)
+    if not os.path.exists(args.registry):
+        print(f"Error: Registry file '{args.registry}' not found.")
+        return
+    reg = load_registry(args.registry)
+    if args.cmd == 'list':
+        list_skills(reg)
+    elif args.cmd == 'search':
+        search_skills(reg, args.query)
+    elif args.cmd == 'install':
+        install_skill(args.skill_id, reg, args.target)
+    else:
+        parser.print_help()
+
+if __name__ == '__main__':
+    main()

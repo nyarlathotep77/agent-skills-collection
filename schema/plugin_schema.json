@@ -26,7 +26,7 @@
         "type": "string",
         "enum": [
           "deepagents",
-imit: "dcode",
+          "dcode",
           "claude-code",
           "generic"
         ]

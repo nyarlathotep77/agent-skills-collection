@@ -7,3 +7,6 @@
 [submodule "scientific-agent-skills"]
 	path = scientific-agent-skills
 	url = https://github.com/k-dense-ai/scientific-agent-skills
+[submodule "kotlin-kmp-claude-agent-skills"]
+	path = kotlin-kmp-claude-agent-skills
+	url = https://github.com/mmiani/kotlin-kmp-claude-agent-skills.git
