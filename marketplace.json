@@ -15,6 +15,13 @@
       "displayName": "Android Skills"
     },
     {
+      "name": "hadrian",
+      "source": "./hadrian",
+      "description": "Agentic L3 goal loop (ASDLC conditional autonomy): drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.",
+      "author": "Agent Skills Collection Team",
+      "displayName": "Hadrian L3 Goal Loop"
+    },
+    {
       "name": "kotlin-kmp-agent-skills",
       "source": "./kotlin-kmp-claude-agent-skills",
       "description": "AI agent skills, orchestration pipeline, and workflows for Kotlin Multiplatform projects.",
