@@ -1,11 +1,11 @@
 # Local install output (created by install_skills.py)
 installed_skills/
 
-# Generated registry snapshot (stale local artifact; regenerate via generate_registry.py)
-registry.json
-
 # Local agent harness plugin cache
 .agents/
+
+# Local Hadrian goal-loop state
+.hadrian/
 
 # Python
 __pycache__/
