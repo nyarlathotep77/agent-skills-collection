@@ -75,6 +75,13 @@ Scans one or more source directories, parses YAML frontmatter from every `SKILL.
 writes a `metadata.json` next to it with fields: `id`, `name`, `version`, `description`,
 `tags`, `dependencies`.
 
+The per-skill `metadata.json` is a machine-readable sidecar of the skill's frontmatter.
+Frontmatter lives inside markdown, so any tool that wants to index, search, or filter
+skills (by id, version, tags, or dependencies) has to parse YAML out of prose first; the
+generated JSON gives it a structured snapshot instead. The `SKILL.md` frontmatter remains
+the single source of truth — regenerate after editing skills rather than hand-editing the
+JSON:
+
 ```bash
 python3 generate_metadata.py android-skills hadrian
 ```
