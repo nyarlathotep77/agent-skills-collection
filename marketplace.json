@@ -27,20 +27,6 @@
       "description": "AI agent skills, orchestration pipeline, and workflows for Kotlin Multiplatform projects.",
       "author": "Mariano Miani",
       "displayName": "Kotlin KMP Agent Skills"
-    },
-    {
-      "name": "Scientific Agent Skills Plugin",
-      "source": "./scientific-agent-skills",
-      "description": "A plugin for scanning and analyzing agent skills.",
-      "author": "Scientific Agent Skills Team",
-      "displayName": null
-    },
-    {
-      "name": "scientific-skills-plugin",
-      "source": "./scientific-skills",
-      "description": "A collection of scientific computing skills for agents.",
-      "author": "Agent Skills Collection Team",
-      "displayName": null
     }
   ]
 }
