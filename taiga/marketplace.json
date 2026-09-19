@@ -1,0 +1,13 @@
+{
+  "name": "taiga",
+  "version": "1.0.0",
+  "description": "Taiga project-management skills: decompose user stories into estimated tasks (one per acceptance criterion) and keep task/user-story statuses in sync with the work agents perform.",
+  "author": "Agent Skills Collection Team",
+  "harnesses": [
+    "generic",
+    "dcode",
+    "claude-code"
+  ],
+  "capabilities": [],
+  "entry_points": {}
+}

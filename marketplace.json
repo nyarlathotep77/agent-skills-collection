@@ -27,6 +27,13 @@
       "description": "AI agent skills, orchestration pipeline, and workflows for Kotlin Multiplatform projects.",
       "author": "Mariano Miani",
       "displayName": "Kotlin KMP Agent Skills"
+    },
+    {
+      "name": "taiga",
+      "source": "./taiga",
+      "description": "Taiga project-management skills: decompose user stories into estimated tasks (one per acceptance criterion) and keep task/user-story statuses in sync with the work agents perform.",
+      "author": "Agent Skills Collection Team",
+      "displayName": null
     }
   ]
 }
