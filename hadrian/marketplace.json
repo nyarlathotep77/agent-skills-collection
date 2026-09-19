@@ -2,8 +2,11 @@
   "author": "Agent Skills Collection Team",
   "description": "Agentic L3 goal loop (ASDLC conditional autonomy): drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.",
   "displayName": "Hadrian L3 Goal Loop",
+  "entry_points": {
+    "goal": "commands/goal.md"
+  },
   "name": "hadrian",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "harnesses": [
     "generic",
     "dcode",
