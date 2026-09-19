@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.1.0"
+  version: "0.2.0"
 ---
 
 # Hadrian — L3 Goal Loop
@@ -10,9 +10,9 @@ metadata:
 You are running an L3 (conditional autonomy) goal loop: you execute autonomously inside a bounded contract; the human owns the definition of success and final acceptance. You never declare your own success without captured evidence.
 
 ## Invocation
-- `/goal <objective>` → start immediately (Phase 0). The user can interrupt at any time.
-- Budget in prose: "(max N cycles)" overrides the default of 10.
-- Spec-anchored: if the objective references a spec file, that file's Contract/DoD section is the baseline for gates.
+- `/goal <objective>` → start Phase 0 immediately, without confirmation. The user can interrupt at any time; a user message always preempts the loop.
+- Cycle budget: default **10**. A `(max N cycles)` clause in the invocation replaces it (N must be a positive integer — otherwise keep 10). Record the resolved budget in the contract header as `Budget: <N> cycles`.
+- Spec-anchored: if the objective references an existing spec file, that file's Contract/DoD section is the baseline for DoD clauses and gates (source `spec`).
 - Subcommands (first word of $ARGUMENTS): `status` → summarize `.hadrian/state.md`; `resume` → continue an active goal from state; `stop` → halt and write an escalation report.
 
 ## Phase 0 — Contract intake
@@ -40,7 +40,7 @@ Repeat until a stop condition. Each cycle:
 5. Append a cycle entry to `.hadrian/state.md`: n | action | gates (name: result + one line of evidence) | review verdict | next step.
 
 ## Phase 3 — Stop & gate
-Stop when all DoD clauses PASS and Review Gate is clean → completion report; or on budget exhausted / same failure twice in a row / blocker → escalation report (references/escalation-report.md).
+Stop when all DoD clauses PASS and Review Gate is clean → completion report; or on budget exhausted / same failure twice in a row / blocker → escalation report (references/escalation-report.md). Budget exhaustion stops the loop immediately — never silently continue past it; only a human amendment recorded in state extends the budget.
 - NOT-RUN gates block PASS: list them and require an explicit human waiver recorded in `.hadrian/state.md`. The agent never self-waives.
 - Completion requires acceptance: present the diff summary + evidence table; on explicit user approval in this session, create `.hadrian/signoff` (unblocks `git push`).
 
