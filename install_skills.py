@@ -142,6 +142,10 @@ def main():
     search_p.add_argument('query', type=str, help='Search term')
     install_p = subparsers.add_parser('install', help='Install a skill by ID')
     install_p.add_argument('skill_id', type=str, help='ID of the skill to install')
+    # Also accepted after the subcommand (README form: install <id> --target DIR).
+    # SUPPRESS keeps an absent flag from clobbering a value given before the subcommand.
+    install_p.add_argument('--target', default=argparse.SUPPRESS,
+                           help='Directory to install skills into')
 
     args = parser.parse_args()
     if not args.cmd:
@@ -156,7 +160,8 @@ def main():
         search_skills(skills, args.query)
         return 0
     elif args.cmd == 'install':
-        return install_skill(args.skill_id, skills, args.target)
+        target = args.target or './installed_skills'
+        return install_skill(args.skill_id, skills, target)
     return 1
 
 
