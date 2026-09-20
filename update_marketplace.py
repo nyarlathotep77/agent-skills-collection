@@ -64,6 +64,7 @@ def aggregate_marketplace(root_dir):
         "name": "agent-skills-collection",  # Must be whitespace-free
         "version": "1.0.0",
         "description": "The master marketplace for all agentic plugins and skills.",
+        "harnesses": ["generic"],
         "author": "Agent Skills Collection Team",
         "plugins": plugins
     }

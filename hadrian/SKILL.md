@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.2.0"
+  version: "0.4.0"
 ---
 
 # Hadrian — L3 Goal Loop
@@ -23,7 +23,7 @@ You are running an L3 (conditional autonomy) goal loop: you execute autonomously
    3. Toolchain auto-detection (`package.json` scripts, Makefile targets, Gradle tasks, pyproject) — mark as INFERRED
    4. Clauses derived from the objective text
 3. Write `.hadrian/contract.md` (see templates/contract.md): objective, numbered DoD clauses, constraints, gate list with source + command, budget, verification commands.
-4. Show the contract to the user and start Phase 1 immediately.
+4. Show the written contract to the user BEFORE Phase 1 begins — presentation precedes any work; do not wait for confirmation before starting Phase 1.
 
 ## Phase 1 — Capability probe (once per goal)
 Record in the header of `.hadrian/state.md` which capabilities exist:
@@ -32,17 +32,20 @@ Record in the header of `.hadrian/state.md` which capabilities exist:
 - `freeze`: is a pre-tool guard active (hadrian-guard)? → hard | prompt-enforced
 
 ## Phase 2 — Cycle loop
+Before applying any change: if the working tree is on the repository's default branch (main/master), create and check out a dedicated work branch for this goal (e.g. `hadrian/<goal-slug>`, or follow the repo's existing branch-naming convention) and record it in `.hadrian/state.md`. No change is ever applied directly to main/master.
 Repeat until a stop condition. Each cycle:
 1. Re-read `.hadrian/contract.md` and the last state entry. Choose the smallest change that advances one DoD clause.
 2. Make the change.
 3. **Quality Gate**: run every gate command in the contract; capture real output. PASS requires captured evidence; a tool error = FAIL (fail-closed). A gate that cannot be executed (missing environment) = NOT-RUN, which blocks completion.
 4. **Review Gate**: [independent] invoke the verifier subagent with contract + diff + gate outputs → per-clause PASS/FAIL with cited evidence; it also checks that the diff does not weaken any gate definition, test, or assertion. [degraded] run an in-process adversarial pass against the same checklist.
-5. Append a cycle entry to `.hadrian/state.md`: n | action | gates (name: result + one line of evidence) | review verdict | next step.
+5. **Rubric Gate**: [independent] invoke the rubric-evaluator subagent with contract + final artifact → per-clause score on its anchored scale (0–4) with cited evidence; it never sees other evaluators' scores and never implements. [degraded] run an in-process scoring pass against the same rubric.
+6. Append a cycle entry to `.hadrian/state.md`: n | action | gates (name: result + one line of evidence) | review verdict | rubric score | next step.
 
 ## Phase 3 — Stop & gate
-Stop when all DoD clauses PASS and Review Gate is clean → completion report; or on budget exhausted / same failure twice in a row / blocker → escalation report (references/escalation-report.md). Budget exhaustion stops the loop immediately — never silently continue past it; only a human amendment recorded in state extends the budget.
+Stop when all DoD clauses PASS, Review Gate is clean, and Rubric Gate meets its threshold → completion report; or on budget exhausted / same failure twice in a row / blocker → escalation report (references/escalation-report.md). Budget exhaustion stops the loop immediately — never silently continue past it; only a human amendment recorded in state extends the budget.
 - NOT-RUN gates block PASS: list them and require an explicit human waiver recorded in `.hadrian/state.md`. The agent never self-waives.
-- Completion requires acceptance: present the diff summary + evidence table; on explicit user approval in this session, create `.hadrian/signoff` (unblocks `git push`).
+- Rubric Gate (references/rubric-gate.md): after Review Gate passes, score every DoD clause on its anchored scale with cited evidence; the goal is complete only when no clause scores below its anchor and the mean meets the contract threshold. A sub-anchor clause blocks completion exactly like a failed gate — fix it in a new cycle (budget permitting) or escalate.
+- Completion requires acceptance: present the diff summary + evidence table + rubric scorecard; on explicit user approval in this session, create `.hadrian/signoff` (unblocks `git push`).
 
 ## Hard rules — never violate
 1. Never modify `.hadrian/contract.md`. Amendments are proposed in reports; a human applies them.
@@ -50,6 +53,7 @@ Stop when all DoD clauses PASS and Review Gate is clean → completion report; o
 3. No `git push` without `.hadrian/signoff`.
 4. A verification tool error = cycle failure, not success.
 5. Evidence over claims: every PASS cites captured output.
+6. Never apply changes directly to the repository's default branch (main/master): create and check out a dedicated work branch before the first change, and record it in state.
 
 ## References
 - references/capability-probe.md — harness matrix and adaptation rules

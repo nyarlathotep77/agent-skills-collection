@@ -39,11 +39,14 @@ Objective / Command: $ARGUMENTS
    - Quality Gates table (`| # | Gate | Source | Command | Status |`).
    - Constraints and Verification Commands.
 4. Initialize `.hadrian/state.md` with:
-   `Capability probe: verifier=in-process loop-engine=self-prompted freeze=prompt`
+     `Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>`
+5. Show the written contract to the user BEFORE Phase 1 begins — presentation precedes any work; do not wait for confirmation before starting Phase 1.
 
 ### 2. Phase 1 & 2 — Cycle loop (bias for direct action)
 
 **Budget check first:** before starting each cycle, count completed cycles in `.hadrian/state.md`. If the budget is exhausted → stop immediately and write an escalation report with reason `budget exhausted` (format: references/escalation-report.md). Never silently continue past the budget; only a human amendment recorded in state extends it.
+
+**Branch discipline:** before applying any change, record the current git branch in `.hadrian/state.md`. Never apply changes directly to the repository's default (main/master) branch — first create and check out a dedicated work branch for the goal (e.g., `hadrian/<goal-slug>`), then apply all changes on it.
 
 Execute tightly focused cycles until all DoD clauses PASS or a stop condition hits:
 
@@ -59,6 +62,7 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
 - **Direct code execution:** never inspect OS processes (`ps`), search for other agents, or stall on existing working-tree diffs. Execute the required changes directly on the codebase.
 - **Evidence over claims:** every PASS must cite captured test/build command output.
 - **Immutable contract:** never edit `.hadrian/contract.md` after intake.
+- **Branch discipline:** record the current git branch in `.hadrian/state.md` before the first change. Never apply changes directly to the repository's default (main/master) branch — create and check out a dedicated work branch for the goal (e.g., `hadrian/<goal-slug>`) before applying any change.
 - **No git push:** do not run `git push` without `.hadrian/signoff`.
 
 ## Stop conditions & reports

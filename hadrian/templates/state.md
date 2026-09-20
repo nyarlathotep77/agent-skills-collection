@@ -1,7 +1,8 @@
 # Goal State — <objective>
 
 Started: <UTC timestamp>
-Capability probe: verifier=<independent|in-process> loop-engine=<harness|self-prompted> freeze=<hard|prompt>
+Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>
+Work branch: <dedicated branch created before the first change — never main/master>
 
 ## Cycles
 

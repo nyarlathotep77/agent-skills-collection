@@ -8,6 +8,7 @@ Both reports go to the user and are appended to `.hadrian/state.md`.
 HADRIAN — GOAL COMPLETE
 Objective: <...>
 Cycles used: N / budget M
+Branch: <dedicated work branch where the changes live — never main/master>
 DoD: all clauses PASS (evidence in state.md cycles 1..N)
 Gates: <name → result; waivers listed if any>
 Review: independent|in-process, clean
