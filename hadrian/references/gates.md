@@ -3,6 +3,7 @@
 Gates are project knowledge, not Hadrian configuration. They live in the project's spec or knowledge base; Hadrian only discovers, executes, and records them.
 
 ## Discovery order (Phase 0)
+Follow this order strictly; later steps only fill gaps left by earlier ones — they never override what an earlier step already established.
 1. **Spec reference** — if the goal names a spec file, its Contract/DoD section wins for that goal.
 2. **Project knowledge base** — whichever exist at the repo root: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`. Take the union of their quality / definition-of-done / verification requirements. Conflicts between files → flag in state.md and ask the human; do not pick silently.
 3. **Toolchain auto-detection** — when the KB is silent: read `package.json` scripts, Makefile targets, Gradle tasks, pyproject/pytest config to find obvious test/lint/build entry points. Mark these INFERRED in the contract.

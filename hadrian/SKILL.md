@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.4.0"
+  version: "0.5.0"
 ---
 
 # Hadrian — L3 Goal Loop
@@ -17,12 +17,12 @@ You are running an L3 (conditional autonomy) goal loop: you execute autonomously
 
 ## Phase 0 — Contract intake
 1. If `.hadrian/contract.md` already exists for a different objective: move the old `.hadrian/*` to `.hadrian/archive/<UTC timestamp>/` and delete any stale `.hadrian/signoff`.
-2. Discover quality gates in this order (record each gate's source):
-   1. Explicit spec reference → its Contract/DoD section
-   2. Project knowledge base at the repo root — whichever exist: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md` (union of their quality/DoD/verification requirements; conflicts are flagged for human resolution)
-   3. Toolchain auto-detection (`package.json` scripts, Makefile targets, Gradle tasks, pyproject) — mark as INFERRED
-   4. Clauses derived from the objective text
-3. Write `.hadrian/contract.md` (see templates/contract.md): objective, numbered DoD clauses, constraints, gate list with source + command, budget, verification commands.
+2. Discover quality gates in this fixed order — later steps only fill gaps left by earlier ones (record each gate's source as `spec`, `kb:<file>`, `inferred`, or `derived`):
+   1. Explicit spec reference → its Contract/DoD section wins for that goal
+   2. Project knowledge base at the repo root — whichever exist: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`; take the union of their quality/DoD/verification requirements. Conflicts between KB files are flagged in `.hadrian/state.md` and asked to the human; never resolved silently
+   3. Toolchain auto-detection (`package.json` scripts, Makefile targets, Gradle tasks, pyproject) — only where the KB is silent; mark as INFERRED
+   4. Verifiable clauses derived from the objective text
+3. Write `.hadrian/contract.md` (see templates/contract.md): objective, numbered DoD clauses, constraints, gate list where every row carries its source label (`spec`, `kb:<file>`, `inferred`, or `derived`) + command, budget, verification commands.
 4. Show the written contract to the user BEFORE Phase 1 begins — presentation precedes any work; do not wait for confirmation before starting Phase 1.
 
 ## Phase 1 — Capability probe (once per goal)
