@@ -2,6 +2,7 @@
 
 - Started: <UTC timestamp>
 - Budget: <N> cycles (default 10)
+- Work branch: <dedicated work branch — never main/master>
 - Spec reference: <path or none>
 - Knowledge base sources: <AGENTS.md / CLAUDE.md / GEMINI.md / none>
 

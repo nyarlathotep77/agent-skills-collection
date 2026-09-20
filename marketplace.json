@@ -2,6 +2,9 @@
   "name": "agent-skills-collection",
   "version": "1.0.0",
   "description": "The master marketplace for all agentic plugins and skills.",
+  "harnesses": [
+    "generic"
+  ],
   "author": "Agent Skills Collection Team",
   "plugins": [
     {
