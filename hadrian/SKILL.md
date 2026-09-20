@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.3.0"
+  version: "0.4.0"
 ---
 
 # Hadrian — L3 Goal Loop
