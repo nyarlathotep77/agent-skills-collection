@@ -28,15 +28,15 @@ Objective / Command: $ARGUMENTS
 ### 1. Phase 0 — Contract intake
 
 1. If `.hadrian/contract.md` already exists for a different goal: move existing `.hadrian/*` to `.hadrian/archive/<timestamp>/` and remove any stale `.hadrian/signoff`.
-2. Discover Quality Gates in this order (record each gate's source):
+2. Discover Quality Gates in this fixed order — later steps only fill gaps left by earlier ones (record each gate's source as `spec`, `kb:<file>`, `inferred`, or `derived`):
    - Spec reference → its Contract/DoD section (source `spec`) — the baseline when present.
-   - Repository KB (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`).
-   - Project toolchain tasks (e.g., `./gradlew test`, `npm test`, `cargo test`, `pytest`).
-   - Verifiable clauses derived from the objective.
+   - Repository KB (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`) — union of their quality/DoD/verification requirements; conflicts between KB files are flagged in `.hadrian/state.md` and asked to the human, never resolved silently (source `kb:<file>`).
+   - Project toolchain tasks (e.g., `./gradlew test`, `npm test`, `cargo test`, `pytest`) — only where the KB is silent; mark INFERRED (source `inferred`).
+   - Verifiable clauses derived from the objective (source `derived`).
 3. Create `.hadrian/contract.md` immediately:
    - Header: Started timestamp, Budget (<resolved N> cycles), Spec/KB references.
    - Numbered Definition of Done (DoD) clauses.
-   - Quality Gates table (`| # | Gate | Source | Command | Status |`).
+    - Quality Gates table (`| # | Gate | Source | Command | Status |`), every row's Source one of `spec`, `kb:<file>`, `inferred`, `derived`.
    - Constraints and Verification Commands.
 4. Initialize `.hadrian/state.md` with:
      `Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>`
