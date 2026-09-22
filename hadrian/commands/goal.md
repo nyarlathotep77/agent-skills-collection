@@ -52,7 +52,7 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
 
 1. **Focus**: pick the smallest concrete code change that advances a DoD clause.
 2. **Implement**: edit or create files directly with tools.
-3. **Execute gates**: run verification/test commands via bash (e.g., `./gradlew test`, syntax checks). Capture actual terminal output.
+3. **Execute gates**: run every gate command in the contract via bash (e.g., `./gradlew test`, syntax checks) and capture real terminal output. PASS is only granted with captured output evidence — one line of it goes into state.md. A verification tool erroring = FAIL for that gate and the cycle (fail-closed; never interpreted as "not applicable"). A gate whose precondition is missing (no emulator, no service) = NOT-RUN, which blocks completion until a human waives it.
 4. **Adversarial check**: ensure the diff does not weaken tests, delete assertions, or modify `.hadrian/contract.md`.
 5. **Record state**: append the cycle result to `.hadrian/state.md` with captured evidence.
 6. **Iterate**: proceed immediately to the next cycle without stalling or asking unnecessary questions unless blocked by an unresolvable error — and only while budget remains (see budget check above).
@@ -68,6 +68,7 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
 ## Stop conditions & reports
 
 - All DoD clauses PASS + adversarial check clean → completion report; acceptance requires explicit user approval, then create `.hadrian/signoff`.
+- NOT-RUN gates block completion: list them in the report and require an explicit human waiver recorded in `.hadrian/state.md` as `WAIVER: gate=<name> by=<user> at=<UTC timestamp> reason=<...>`. The agent never self-waives.
 - Budget exhausted / same failure twice in a row / blocker → escalation report (objective, cycles used vs budget, per-clause status with evidence refs, what is blocked, recommended next step). An escalation is a valid outcome — hand off, don't grind.
 
 ## Skill reference

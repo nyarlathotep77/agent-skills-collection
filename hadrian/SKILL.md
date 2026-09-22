@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.5.0"
+  version: "0.6.0"
 ---
 
 # Hadrian — L3 Goal Loop
@@ -43,7 +43,7 @@ Repeat until a stop condition. Each cycle:
 
 ## Phase 3 — Stop & gate
 Stop when all DoD clauses PASS, Review Gate is clean, and Rubric Gate meets its threshold → completion report; or on budget exhausted / same failure twice in a row / blocker → escalation report (references/escalation-report.md). Budget exhaustion stops the loop immediately — never silently continue past it; only a human amendment recorded in state extends the budget.
-- NOT-RUN gates block PASS: list them and require an explicit human waiver recorded in `.hadrian/state.md`. The agent never self-waives.
+- NOT-RUN gates block PASS: list them and require an explicit human waiver recorded in `.hadrian/state.md` as `WAIVER: gate=<name> by=<user> at=<UTC timestamp> reason=<...>`. The agent never self-waives.
 - Rubric Gate (references/rubric-gate.md): after Review Gate passes, score every DoD clause on its anchored scale with cited evidence; the goal is complete only when no clause scores below its anchor and the mean meets the contract threshold. A sub-anchor clause blocks completion exactly like a failed gate — fix it in a new cycle (budget permitting) or escalate.
 - Completion requires acceptance: present the diff summary + evidence table + rubric scorecard; on explicit user approval in this session, create `.hadrian/signoff` (unblocks `git push`).
 
@@ -51,7 +51,7 @@ Stop when all DoD clauses PASS, Review Gate is clean, and Rubric Gate meets its 
 1. Never modify `.hadrian/contract.md`. Amendments are proposed in reports; a human applies them.
 2. Never weaken tests, assertions, gate thresholds, or KB quality definitions to force a pass.
 3. No `git push` without `.hadrian/signoff`.
-4. A verification tool error = cycle failure, not success.
+4. A verification tool error = FAIL for that gate and the cycle (fail-closed), never success; it is never downgraded to "not applicable".
 5. Evidence over claims: every PASS cites captured output.
 6. Never apply changes directly to the repository's default branch (main/master): create and check out a dedicated work branch before the first change, and record it in state.
 
