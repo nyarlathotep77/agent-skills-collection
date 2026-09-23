@@ -12,6 +12,7 @@ Work branch: <dedicated branch created before the first change — never main/ma
   - <gate>: PASS — <one line of captured evidence>
   - <gate>: FAIL — <error excerpt>
   - <gate>: NOT-RUN — <reason, e.g. no emulator>
+- Tool error = FAIL for that gate and the cycle (fail-closed); a NOT-RUN gate blocks completion until a human waiver below; the agent never self-waives.
 - Review: <PASS|FAIL> — <verdict + cited evidence or weakening found>
 - Next: <next smallest step>
 

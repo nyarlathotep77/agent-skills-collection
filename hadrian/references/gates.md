@@ -13,7 +13,7 @@ Record every gate's source in the contract table: `spec`, `kb:<file>`, `inferred
 
 ## Execution (Quality Gate, each cycle)
 - Run each gate command; capture real output. PASS requires captured evidence (one line of it goes into state.md).
-- A verification tool erroring = FAIL for that gate (fail-closed). Never interpret an error as "not applicable".
+- A verification tool erroring = FAIL for that gate and the cycle (fail-closed). Never interpret or downgrade an error to "not applicable".
 - A gate whose precondition is missing (no emulator, no service) = NOT-RUN. NOT-RUN blocks completion and requires a human waiver — see below. The agent never self-waives.
 
 ## Waiver format (human-only)
