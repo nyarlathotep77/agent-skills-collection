@@ -44,6 +44,8 @@ Objective / Command: $ARGUMENTS
 
 ### 2. Phase 1 & 2 — Cycle loop (bias for direct action)
 
+**Capability probe (Phase 1, once per goal):** before the first cycle, run the capability probe exactly once per goal (references/capability-probe.md) and record the results in the `.hadrian/state.md` header: `verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>`. Every missing capability maps to a documented degraded mode — adapt, don't fail. Degraded modes are recorded, not hidden: they appear in every completion/escalation report so the human knows which guarantees were active.
+
 **Budget check first:** before starting each cycle, count completed cycles in `.hadrian/state.md`. If the budget is exhausted → stop immediately and write an escalation report with reason `budget exhausted` (format: references/escalation-report.md). Never silently continue past the budget; only a human amendment recorded in state extends it.
 
 **Branch discipline:** before applying any change, record the current git branch in `.hadrian/state.md`. Never apply changes directly to the repository's default (main/master) branch — first create and check out a dedicated work branch for the goal (e.g., `hadrian/<goal-slug>`), then apply all changes on it.
@@ -64,6 +66,7 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
 - **Immutable contract:** never edit `.hadrian/contract.md` after intake.
 - **Branch discipline:** record the current git branch in `.hadrian/state.md` before the first change. Never apply changes directly to the repository's default (main/master) branch — create and check out a dedicated work branch for the goal (e.g., `hadrian/<goal-slug>`) before applying any change.
 - **No git push:** do not run `git push` without `.hadrian/signoff`.
+- **State persistence is required:** if writing to `.hadrian/state.md` becomes impossible, stop the loop and report instead of running — persistence is never silently degraded.
 
 ## Stop conditions & reports
 

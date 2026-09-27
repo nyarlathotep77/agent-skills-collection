@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.6.0"
+  version: "0.7.0"
 ---
 
 # Hadrian — L3 Goal Loop
@@ -26,10 +26,12 @@ You are running an L3 (conditional autonomy) goal loop: you execute autonomously
 4. Show the written contract to the user BEFORE Phase 1 begins — presentation precedes any work; do not wait for confirmation before starting Phase 1.
 
 ## Phase 1 — Capability probe (once per goal)
-Record in the header of `.hadrian/state.md` which capabilities exist:
+Run exactly once per goal, before the first cycle. Record in the header of `.hadrian/state.md` which capabilities exist:
 - `verifier`: independent subagent available? → Review Gate mode = independent | in-process adversarial pass
 - `loop-engine`: does the harness auto-continue on idle? → self-prompted if not (explicitly re-issue the next cycle)
-- `freeze`: is a pre-tool guard active (hadrian-guard)? → hard | prompt-enforced
+- `freeze`: is a pre-tool guard active (hadrian-guard)? → hard | prompt-enforced; when prompt-enforced, verify contract integrity each cycle (`git diff -- .hadrian/contract.md` must be empty)
+
+Every missing capability maps to a documented degraded mode — adapt, don't fail (full matrix: references/capability-probe.md). Degraded modes are recorded, not hidden: they appear in every completion/escalation report so the human knows which guarantees were active. State persistence is required: if file writes are impossible, stop and report instead of running.
 
 ## Phase 2 — Cycle loop
 Before applying any change: if the working tree is on the repository's default branch (main/master), create and check out a dedicated work branch for this goal (e.g. `hadrian/<goal-slug>`, or follow the repo's existing branch-naming convention) and record it in `.hadrian/state.md`. No change is ever applied directly to main/master.
@@ -54,6 +56,7 @@ Stop when all DoD clauses PASS, Review Gate is clean, and Rubric Gate meets its 
 4. A verification tool error = FAIL for that gate and the cycle (fail-closed), never success; it is never downgraded to "not applicable".
 5. Evidence over claims: every PASS cites captured output.
 6. Never apply changes directly to the repository's default branch (main/master): create and check out a dedicated work branch before the first change, and record it in state.
+7. State persistence is required: if `.hadrian/state.md` cannot be written, stop the loop and report instead of running; persistence is never silently degraded.
 
 ## References
 - references/capability-probe.md — harness matrix and adaptation rules

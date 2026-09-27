@@ -9,6 +9,7 @@ HADRIAN — GOAL COMPLETE
 Objective: <...>
 Cycles used: N / budget M
 Branch: <dedicated work branch where the changes live — never main/master>
+Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>; degraded modes active: <none | list>
 DoD: all clauses PASS (evidence in state.md cycles 1..N)
 Gates: <name → result; waivers listed if any>
 Review: independent|in-process, clean
@@ -22,6 +23,7 @@ Proposed KB amendments: <none | list>
 HADRIAN — ESCALATION
 Objective: <...>
 Stopped at cycle N / budget M. Reason: <budget exhausted | same failure 2x consecutive | blocker>
+Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>; degraded modes active: <none | list>
 DoD status: <clause → PASS|FAIL|NOT-ATTEMPTED, one line each with evidence ref>
 Blocked on: <what exactly is missing — env, decision, access>
 Tried: <each cycle's action in one line>
