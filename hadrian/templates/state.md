@@ -6,6 +6,8 @@ Work branch: <dedicated branch created before the first change — never main/ma
 
 ## Cycles
 
+Each cycle entry contains exactly these fields: n | action | gates (name: result + one line of evidence) | review verdict | next step. This file is the single source of truth for resuming an active goal across sessions — resume relies only on contract + state, never on session memory.
+
 ### Cycle 1
 - Action: <what changed, files touched>
 - Gates:
