@@ -1,5 +1,5 @@
 ---
-description: Drive a bounded objective to verified completion with the Hadrian L3 goal loop — contract intake, quality gates, cycle budget, human acceptance. Usage: /goal <objective> [(max N cycles)]
+description: Drive a bounded objective to verified completion with the Hadrian L3 goal loop — contract intake, quality gates, cycle budget, human acceptance. Usage: /goal <objective> [(max N cycles)] | /goal status | /goal resume | /goal stop
 ---
 
 # Hadrian L3 Goal Execution
@@ -17,9 +17,11 @@ Objective / Command: $ARGUMENTS
 
 ## Subcommand dispatch (check first word of arguments)
 
-- **`status`**: Summarize `.hadrian/state.md` and exit.
-- **`resume`**: Read `.hadrian/contract.md` and `.hadrian/state.md`, then continue the cycle loop from the last state entry.
-- **`stop`**: Halt execution, record the reason in `.hadrian/state.md`, and report what remains.
+Subcommands never start a new goal; they operate on an existing one. `.hadrian/contract.md` + `.hadrian/state.md` are the single source of truth for resuming an active goal across sessions — resume relies only on those files, never on session memory.
+
+- **`status`**: Read and summarize `.hadrian/state.md` (objective, budget used vs total, last cycle's gates/verdict, next step, waivers) and exit. Do not start or continue the loop. If no state file exists, say so and exit.
+- **`resume`**: Read `.hadrian/contract.md` and `.hadrian/state.md`, verify they belong to the same active (unsigned) goal, run the budget check, then continue the cycle loop from the last state entry. Do not re-run the capability probe — its result is already recorded in the state header (once per goal). If either file is missing or a signoff exists, report that there is nothing to resume and exit.
+- **`stop`**: Halt execution immediately. Write an escalation report (format: references/escalation-report.md) with reason `stopped by user`, append it to `.hadrian/state.md`, and report what remains. Do not run further cycles.
 
 ---
 
@@ -56,7 +58,7 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
 2. **Implement**: edit or create files directly with tools.
 3. **Execute gates**: run every gate command in the contract via bash (e.g., `./gradlew test`, syntax checks) and capture real terminal output. PASS is only granted with captured output evidence — one line of it goes into state.md. A verification tool erroring = FAIL for that gate and the cycle (fail-closed; never interpreted as "not applicable"). A gate whose precondition is missing (no emulator, no service) = NOT-RUN, which blocks completion until a human waives it.
 4. **Adversarial check**: ensure the diff does not weaken tests, delete assertions, or modify `.hadrian/contract.md`.
-5. **Record state**: append the cycle result to `.hadrian/state.md` with captured evidence.
+5. **Record state**: append a cycle entry to `.hadrian/state.md`: n | action | gates (name: result + one line of evidence) | review verdict | next step — every field present, each gate's evidence captured in this cycle. The state file is the single source of truth for resuming an active goal across sessions; nothing may be recorded only in session memory.
 6. **Iterate**: proceed immediately to the next cycle without stalling or asking unnecessary questions unless blocked by an unresolvable error — and only while budget remains (see budget check above).
 
 ### 3. Execution guardrails (strict anti-entropy)
