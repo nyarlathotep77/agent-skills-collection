@@ -28,6 +28,7 @@
           "deepagents",
           "dcode",
           "claude-code",
+          "opencode",
           "generic"
         ]
       },

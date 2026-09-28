@@ -53,7 +53,7 @@ build system, no test suite of its own, and no runtime service. Its "product" is
   first-party skills — it will not parse correctly.
 - Plugin manifests (`marketplace.json`) must satisfy `schema/plugin_schema.json`:
   required fields are `name`, `version`, `description`, `harnesses` (enum:
-  `deepagents`, `dcode`, `claude-code`, `generic`).
+  `deepagents`, `dcode`, `claude-code`, `opencode`, `generic`).
 
 ## Common workflows
 

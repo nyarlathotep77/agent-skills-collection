@@ -117,6 +117,22 @@ def search_skills(skills, query):
         print(_format_skill(s))
 
 
+def opencode_commands_dir(target_dir):
+    """Return the OpenCode commands dir paired with an OpenCode skills target.
+
+    OpenCode v2 discovers skills from `~/.config/opencode/skills` (global) and
+    `.opencode/skills` (project), but command files only from the sibling
+    `commands/` directory. Returns None when the target is not such a layout.
+    """
+    t = os.path.abspath(os.path.expanduser(target_dir))
+    if os.path.basename(t) != 'skills':
+        return None
+    parent = os.path.basename(os.path.dirname(t))
+    if parent not in ('opencode', '.opencode'):
+        return None
+    return os.path.join(os.path.dirname(t), 'commands')
+
+
 def install_skill(skill_id, skills, target_dir):
     skill = next((s for s in skills if s['id'] == skill_id), None)
     if not skill:
@@ -129,6 +145,19 @@ def install_skill(skill_id, skills, target_dir):
         print(f"Error during installation: {e}")
         return 1
     print(f"Successfully installed '{skill['id']}' to {dest}")
+
+    # OpenCode v2 does not discover commands inside a skill directory; copy the
+    # plugin's command files into the paired commands dir so /<name> works.
+    cmds_src = os.path.join(skill['source'], 'commands')
+    cmds_dir = opencode_commands_dir(target_dir)
+    if cmds_dir and os.path.isdir(cmds_src):
+        os.makedirs(cmds_dir, exist_ok=True)
+        for fname in sorted(os.listdir(cmds_src)):
+            if not fname.endswith('.md'):
+                continue
+            shutil.copyfile(os.path.join(cmds_src, fname),
+                            os.path.join(cmds_dir, fname))
+            print(f"Installed command /{os.path.splitext(fname)[0]} to {cmds_dir}/{fname}")
     return 0
 
 

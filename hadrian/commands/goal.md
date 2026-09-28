@@ -78,4 +78,4 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
 
 ## Skill reference
 
-Full protocol details live in the Hadrian skill that ships alongside this command: `../SKILL.md` (phases), `../references/gates.md`, `../references/capability-probe.md`, `../references/escalation-report.md`, templates in `../templates/`.
+Full protocol details live in the Hadrian skill that ships alongside this command. Load it by ID (`hadrian`) through your harness's skill mechanism (OpenCode: the `skill` tool; Claude Code: its skills directory). When working from the plugin source tree, the files are at `../SKILL.md` (phases), `../references/gates.md`, `../references/capability-probe.md`, `../references/escalation-report.md`, templates in `../templates/`.

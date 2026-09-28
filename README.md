@@ -3,7 +3,7 @@
 The master marketplace for agentic plugins and skills. This repository aggregates
 [open-standard agent skills](https://agentskills.io) — markdown files (`SKILL.md`) that
 ground LLMs with domain knowledge, workflows, and tooling — into a single installable
-catalog for agentic harnesses (dcode, Claude Code, DeepAgents, generic).
+catalog for agentic harnesses (dcode, Claude Code, DeepAgents, OpenCode v2, generic).
 
 Skills are discovered **live** by scanning `SKILL.md` frontmatter in the source trees, so
 there is no intermediate registry artifact to keep in sync with upstream.
@@ -54,10 +54,19 @@ python3 install_skills.py search compose
 
 # Install a skill into ./installed_skills (default) or another target dir
 python3 install_skills.py install camerax --target ~/.config/opencode/skills
+
+# Hadrian installs as an OpenCode v2 skill plus its /goal command
+python3 install_skills.py install hadrian --target ~/.config/opencode/skills
 ```
 
 `install_skills.py` walks the tree, parses each `SKILL.md` YAML frontmatter, and copies
 the whole skill directory to the target. Duplicate skill IDs are skipped with a warning.
+
+When the target is an OpenCode skills directory (`~/.config/opencode/skills` or
+`<project>/.opencode/skills`), any `commands/*.md` in the plugin are also copied into
+the paired commands directory (`.../opencode/commands/`), because OpenCode v2 discovers
+skills and command files from separate locations. That is what makes `/goal` available
+in the TUI after installing Hadrian.
 
 ## Tooling
 
@@ -131,7 +140,7 @@ python3 tools/validate_plugin.py my-plugin/marketplace.json
 | `name` | string | Plugin/skill name |
 | `version` | string | Semantic version |
 | `description` | string | Brief description |
-| `harnesses` | array of strings | One or more of: `deepagents`, `dcode`, `claude-code`, `generic` |
+| `harnesses` | array of strings | One or more of: `deepagents`, `dcode`, `claude-code`, `opencode`, `generic` |
 
 Optional fields: `author` (string), `capabilities` (array of strings), `entry_points`
 (object mapping capability names to implementation paths/commands).
