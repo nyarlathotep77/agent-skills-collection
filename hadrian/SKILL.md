@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.10.0"
+  version: "0.11.0"
 ---
 
 # Hadrian — L3 Goal Loop
@@ -47,7 +47,8 @@ Repeat until a stop condition. Each cycle:
 Stop when all DoD clauses PASS, Review Gate is clean, and Rubric Gate meets its threshold → completion report; or on budget exhausted / same failure twice in a row / blocker → escalation report (references/escalation-report.md). Budget exhaustion stops the loop immediately — never silently continue past it; only a human amendment recorded in state extends the budget.
 - NOT-RUN gates block PASS: list them and require an explicit human waiver recorded in `.hadrian/state.md` as `WAIVER: gate=<name> by=<user> at=<UTC timestamp> reason=<...>`. The agent never self-waives.
 - Rubric Gate (references/rubric-gate.md): after Review Gate passes, score every DoD clause on its anchored scale with cited evidence; the goal is complete only when no clause scores below its anchor and the mean meets the contract threshold. A sub-anchor clause blocks completion exactly like a failed gate — fix it in a new cycle (budget permitting) or escalate.
-- Completion requires acceptance: present the diff summary + evidence table + rubric scorecard; on explicit user approval in this session, create `.hadrian/signoff` (unblocks `git push`).
+- Completion requires acceptance — it is human-owned: present the diff summary + evidence table + rubric scorecard and wait; **only** on explicit user approval in this session is `.hadrian/signoff` created, which unblocks `git push`. No self-assigned success.
+- Coding-task goals end in an opened PR/MR: when the goal's work modified code in a git repository, after explicit user approval and signoff creation commit on the feature branch, push it, open a pull request (GitHub via `gh`) or merge request (GitLab), and record its URL in the completion report. Goals without code changes are exempt.
 
 ## Hard rules — never violate
 1. Never modify `.hadrian/contract.md`. Amendments are proposed in reports; a human applies them.
