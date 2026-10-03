@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.9.0"
+  version: "0.10.0"
 ---
 
 # Hadrian — L3 Goal Loop
@@ -39,7 +39,7 @@ Repeat until a stop condition. Each cycle:
 1. Re-read `.hadrian/contract.md` and the last state entry. Choose the smallest change that advances one DoD clause.
 2. Make the change.
 3. **Quality Gate**: run every gate command in the contract; capture real output. PASS requires captured evidence; a tool error = FAIL (fail-closed). A gate that cannot be executed (missing environment) = NOT-RUN, which blocks completion.
-4. **Review Gate**: [independent] invoke the verifier subagent with contract + diff + gate outputs → per-clause PASS/FAIL with cited evidence; it also checks that the diff does not weaken any gate definition, test, or assertion. [degraded] run an in-process adversarial pass against the same checklist.
+4. **Review Gate**: [independent] invoke the verifier subagent (`hadrian-verifier` or equivalent read-only reviewer) with contract + diff + gate outputs → per-clause PASS/FAIL with cited evidence; it also runs the gate-weakening check (references/gates.md): any single hit — a test/assertion edited to force a pass, a lowered gate threshold or removed required check, an edit to KB quality/DoD sections (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`), or any edit to `.hadrian/contract.md` — fails the cycle. [degraded] run an in-process adversarial pass against the same checklist and produce the same per-clause PASS/FAIL with cited evidence.
 5. **Rubric Gate**: [independent] invoke the rubric-evaluator subagent with contract + final artifact → per-clause score on its anchored scale (0–4) with cited evidence; it never sees other evaluators' scores and never implements. [degraded] run an in-process scoring pass against the same rubric.
 6. Append a cycle entry to `.hadrian/state.md`: n | action | gates (name: result + one line of evidence) | review verdict | next step — every field present; when the Rubric Gate runs, append its per-clause scores after the review verdict as an optional extension field. The state file is the single source of truth for resuming an active goal across sessions.
 

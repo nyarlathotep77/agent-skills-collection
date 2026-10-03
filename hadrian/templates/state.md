@@ -16,7 +16,7 @@ Each cycle entry contains exactly these fields: n | action | gates (name: result
   - <gate>: FAIL — <error excerpt>
   - <gate>: NOT-RUN — <reason, e.g. no emulator>
 - Tool error = FAIL for that gate and the cycle (fail-closed); a NOT-RUN gate blocks completion until a human waiver below; the agent never self-waives.
-- Review: <PASS|FAIL> — <verdict + cited evidence or weakening found>
+- Review: <PASS|FAIL> — per-clause verdicts with cited evidence (independent or degraded mode), or the single weakening hit that failed the cycle
 - Next: <next smallest step>
 
 <!-- Waivers (human-only): append exactly this block when a human waives a NOT-RUN gate -->
