@@ -2,7 +2,7 @@
 name: taiga-story-tasks
 description: Create implementation tasks for a Taiga user story - one task per acceptance criterion, each estimated in story points or man-days. Use when the user asks to break down, decompose, plan, or create tasks for a Taiga user story (by URL or project slug + ref).
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Taiga Story Tasks — one implementation task per Acceptance Criterion

@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.11.0"
+  version: "0.12.0"
 ---
 
 # Hadrian — L3 Goal Loop
@@ -43,6 +43,9 @@ Repeat until a stop condition. Each cycle:
 5. **Rubric Gate**: [independent] invoke the rubric-evaluator subagent with contract + final artifact → per-clause score on its anchored scale (0–4) with cited evidence; it never sees other evaluators' scores and never implements. [degraded] run an in-process scoring pass against the same rubric.
 6. Append a cycle entry to `.hadrian/state.md`: n | action | gates (name: result + one line of evidence) | review verdict | next step — every field present; when the Rubric Gate runs, append its per-clause scores after the review verdict as an optional extension field. The state file is the single source of truth for resuming an active goal across sessions.
 
+## Ticket sync — mirror work into the PM tool (only when the goal owns a ticket)
+When the objective is tied to a project-management ticket (e.g. "Execute <PM> US#<n>", or an explicit URL / slug+ref), the loop mirrors reality into that tool per references/taiga-sync.md: decompose the approved plan into child sub-tasks of the story **before work starts** (idempotently — reuse and report existing, never duplicate); move each sub-task to in-progress on its first real work step with a comment stating what was started; move it to done only with captured verification evidence (fail-closed) and an outcome comment. The main agent moves the containing story: it stays initial until the first pickup, then In Progress (comment names the picked-up sub-task), and Done only after re-reading confirms every child task is closed — otherwise it stays In Progress and the remaining tasks are reported. Statuses are resolved from project configuration by role — never hard-coded or invented; if no status plays a required role, report instead of guessing. A worker/sub-agent moves only its own assigned task; the main agent moves the story. The PM tool is pluggable; Taiga (taiga_bridge MCP tools) is the reference implementation. Goals without a ticket skip this entirely.
+
 ## Phase 3 — Stop & gate
 Stop when all DoD clauses PASS, Review Gate is clean, and Rubric Gate meets its threshold → completion report; or on budget exhausted / same failure twice in a row / blocker → escalation report (references/escalation-report.md). Budget exhaustion stops the loop immediately — never silently continue past it; only a human amendment recorded in state extends the budget.
 - NOT-RUN gates block PASS: list them and require an explicit human waiver recorded in `.hadrian/state.md` as `WAIVER: gate=<name> by=<user> at=<UTC timestamp> reason=<...>`. The agent never self-waives.
@@ -63,3 +66,4 @@ Stop when all DoD clauses PASS, Review Gate is clean, and Rubric Gate meets its 
 - references/capability-probe.md — harness matrix and adaptation rules
 - references/gates.md — gate discovery/execution protocol, NOT-RUN + waiver format
 - references/escalation-report.md — completion & escalation report templates
+- references/taiga-sync.md — ticket sync for goals tied to a PM ticket (decomposition, transitions, authority model)
