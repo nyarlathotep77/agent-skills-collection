@@ -78,7 +78,7 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
 
 ## Stop conditions & reports
 
-- All DoD clauses PASS + adversarial check clean → completion report; acceptance requires explicit user approval, then create `.hadrian/signoff`.
+- All DoD clauses PASS + Review Gate clean → completion report (format: references/escalation-report.md); acceptance is human-owned — present the diff summary + evidence table and create `.hadrian/signoff` **only** on explicit in-session user approval (never self-assigned success). After signoff, coding-task goals end in an opened PR/MR: push the feature branch, open a pull request (GitHub via `gh`) or merge request (GitLab), record its URL in the completion report; goals without code changes are exempt.
 - NOT-RUN gates block completion: list them in the report and require an explicit human waiver recorded in `.hadrian/state.md` as `WAIVER: gate=<name> by=<user> at=<UTC timestamp> reason=<...>`. The agent never self-waives.
 - Budget exhausted / same failure twice in a row / blocker → escalation report (objective, cycles used vs budget, per-clause status with evidence refs, what is blocked, recommended next step). An escalation is a valid outcome — hand off, don't grind.
 
