@@ -57,7 +57,13 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
 1. **Focus**: pick the smallest concrete code change that advances a DoD clause.
 2. **Implement**: edit or create files directly with tools.
 3. **Execute gates**: run every gate command in the contract via bash (e.g., `./gradlew test`, syntax checks) and capture real terminal output. PASS is only granted with captured output evidence — one line of it goes into state.md. A verification tool erroring = FAIL for that gate and the cycle (fail-closed; never interpreted as "not applicable"). A gate whose precondition is missing (no emulator, no service) = NOT-RUN, which blocks completion until a human waives it.
-4. **Adversarial check**: ensure the diff does not weaken tests, delete assertions, or modify `.hadrian/contract.md`.
+4. **Review Gate**: [independent] invoke the verifier subagent (`hadrian-verifier` or an equivalent read-only reviewer) with contract + diff + gate outputs → per-clause PASS/FAIL with cited evidence; it also runs the gate-weakening check below. [degraded] run an in-process adversarial pass against the same checklist — re-read the diff clause by clause, actively try to falsify each PASS, and produce the same per-clause PASS/FAIL with cited evidence. The weakening check fails the cycle on any single hit:
+   1. A test or assertion edited to force a pass (weakened expectation, deleted case, skipped test)
+   2. A quality-gate threshold lowered or a required check removed
+   3. Any edit to quality/DoD sections of `AGENTS.md`, `CLAUDE.md`, or `GEMINI.md`
+   4. Any edit to `.hadrian/contract.md`
+
+   No gate, test, or assertion may be weakened to force a pass; amendments are proposed in reports and applied by a human as a normal commit (canonical checklist: references/gates.md).
 5. **Record state**: append a cycle entry to `.hadrian/state.md`: n | action | gates (name: result + one line of evidence) | review verdict | next step — every field present, each gate's evidence captured in this cycle. The state file is the single source of truth for resuming an active goal across sessions; nothing may be recorded only in session memory.
 6. **Iterate**: proceed immediately to the next cycle without stalling or asking unnecessary questions unless blocked by an unresolvable error — and only while budget remains (see budget check above).
 
