@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.14.0"
+  version: "0.15.0"
 ---
 
 # Hadrian — L3 Goal Loop
@@ -23,7 +23,7 @@ You are running an L3 (conditional autonomy) goal loop: you execute autonomously
    2. Project knowledge base at the repo root — whichever exist: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`; take the union of their quality/DoD/verification requirements. Conflicts between KB files are flagged in `.hadrian/state.md` and asked to the human; never resolved silently
    3. Toolchain auto-detection (`package.json` scripts, Makefile targets, Gradle tasks, pyproject) — only where the KB is silent; mark as INFERRED
    4. Verifiable clauses derived from the objective text
-4. Write `.hadrian/contract.md` (see templates/contract.md): objective, numbered DoD clauses, constraints, gate list where every row carries its source label (`spec`, `kb:<file>`, `inferred`, or `derived`) + command, budget, verification commands.
+4. Write `.hadrian/contract.md` (see templates/contract.md): objective, numbered DoD clauses, constraints, gate list where every row carries its source label (`spec`, `kb:<file>`, `inferred`, or `derived`) + command, budget, verification commands, and a Rubric section derived from the DoD clauses — one or more criteria per clause with scale + anchored descriptors, every criterion carrying its source label like gates; frozen after intake, amendments human-only (references/rubric-gate.md).
 5. Show the written contract to the user BEFORE Phase 1 begins — presentation precedes any work; do not wait for confirmation before starting Phase 1.
 
 ## Phase 1 — Capability probe (once per goal)
@@ -31,6 +31,7 @@ Run exactly once per goal, before the first cycle. Record in the header of `.had
 - `verifier`: independent subagent available? → Review Gate mode = independent | in-process adversarial pass
 - `loop-engine`: does the harness auto-continue on idle? → self-prompted if not (explicitly re-issue the next cycle)
 - `freeze`: is a pre-tool guard active (hadrian-guard)? → hard | prompt-enforced; when prompt-enforced, verify contract integrity each cycle (`git diff -- .hadrian/contract.md` must be empty)
+- `rubric`: can this harness spawn a dedicated read-only rubric-evaluator subagent? → record `rubric=independent|in-process` in the state header; the Rubric Gate runs in that mode (references/rubric-gate.md)
 
 Every missing capability maps to a documented degraded mode — adapt, don't fail (full matrix: references/capability-probe.md). Degraded modes are recorded, not hidden: they appear in every completion/escalation report so the human knows which guarantees were active. State persistence is required: if file writes are impossible, stop and report instead of running.
 
@@ -41,8 +42,8 @@ Repeat until a stop condition. Each cycle:
 2. Make the change.
 3. **Quality Gate**: run every gate command in the contract; capture real output. PASS requires captured evidence; a tool error = FAIL (fail-closed). A gate that cannot be executed (missing environment) = NOT-RUN, which blocks completion.
 4. **Review Gate**: [independent] invoke the verifier subagent (`hadrian-verifier` or equivalent read-only reviewer) with contract + diff + gate outputs → per-clause PASS/FAIL with cited evidence; it also runs the gate-weakening check (references/gates.md): any single hit — a test/assertion edited to force a pass, a lowered gate threshold or removed required check, an edit to KB quality/DoD sections (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`), or any edit to `.hadrian/contract.md` — fails the cycle. [degraded] run an in-process adversarial pass against the same checklist and produce the same per-clause PASS/FAIL with cited evidence.
-5. **Rubric Gate**: [independent] invoke the rubric-evaluator subagent with contract + final artifact → per-clause score on its anchored scale (0–4) with cited evidence; it never sees other evaluators' scores and never implements. [degraded] run an in-process scoring pass against the same rubric.
-6. Append a cycle entry to `.hadrian/state.md`: n | action | gates (name: result + one line of evidence) | review verdict | next step — every field present; when the Rubric Gate runs, append its per-clause scores after the review verdict as an optional extension field. The state file is the single source of truth for resuming an active goal across sessions.
+5. **Rubric Gate**: after this cycle's Quality + Review Gates, [independent] invoke the rubric-evaluator subagent with contract + captured evidence → per-criterion score on its anchored scale (0–4) with cited evidence; it never sees other evaluators' scores and never implements. [degraded] run an in-process scoring pass against the same frozen rubric. The rubric runs at minimum on stop conditions (completion/escalation) and whenever the remaining budget is low, and it never overrides gates — a clause that FAILs its gate cannot count as complete regardless of rubric points, and NOT-RUN still blocks completion (references/rubric-gate.md).
+6. Append a cycle entry to `.hadrian/state.md`: n | action | gates (name: result + one line of evidence) | review verdict | next step — every field present; when the Rubric Gate runs, append its per-criterion scores (clause score = minimum of its criteria) after the review verdict as an optional extension field. The state file is the single source of truth for resuming an active goal across sessions.
 
 ## Ticket sync — mirror work into the PM tool (only when the goal owns a ticket)
 When the objective is tied to a project-management ticket (e.g. "Execute <PM> US#<n>", or an explicit URL / slug+ref), the loop mirrors reality into that tool per references/taiga-sync.md: decompose the approved plan into child sub-tasks of the story **before work starts** (idempotently — reuse and report existing, never duplicate); move each sub-task to in-progress on its first real work step with a comment stating what was started; move it to done only with captured verification evidence (fail-closed) and an outcome comment. The main agent moves the containing story: it stays initial until the first pickup, then In Progress (comment names the picked-up sub-task), and Done only after re-reading confirms every child task is closed — otherwise it stays In Progress and the remaining tasks are reported. Statuses are resolved from project configuration by role — never hard-coded or invented; if no status plays a required role, report instead of guessing. A worker/sub-agent moves only its own assigned task; the main agent moves the story. Before implementing any ticket, resolve the acting PM identity (Taiga: `whoami_tool`) and ensure every user story and sub-task the goal implements is assigned to that account — unassigned or foreign-assigned tickets are claimed first with a handover comment naming the previous assignee, new sub-tasks are created already assigned, and a failed claim blocks implementation of that ticket (fail-closed). The PM tool is pluggable; Taiga (taiga_bridge MCP tools) is the reference implementation. Goals without a ticket skip this entirely.
@@ -67,5 +68,6 @@ Stop when all DoD clauses PASS, Review Gate is clean, and Rubric Gate meets its 
 ## References
 - references/capability-probe.md — harness matrix and adaptation rules
 - references/gates.md — gate discovery/execution protocol, NOT-RUN + waiver format
+- references/rubric-gate.md — rubric derivation, anchored scales, capability modes, execution timing, scorecard & completion threshold
 - references/escalation-report.md — completion & escalation report templates
 - references/taiga-sync.md — ticket sync for goals tied to a PM ticket (decomposition, transitions, authority model)

@@ -9,10 +9,11 @@ HADRIAN — GOAL COMPLETE
 Objective: <...>
 Cycles used: N / budget M
 Branch: <dedicated work branch where the changes live — never main/master>
-Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>; degraded modes active: <none | list>
+Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced> rubric=<independent|in-process>; degraded modes active: <none | list>
 DoD: all clauses PASS (evidence in state.md cycles 1..N)
 Gates: <name → result; waivers listed if any>
 Review: independent|in-process, clean
+Rubric: <independent|in-process> — mean <x.x> vs threshold <t>; no clause below its anchor; per-criterion scorecard (criterion → score + one line of evidence) in state.md cycles 1..N
 Acceptance: pending — review the diff. On explicit user approval only, I will create .hadrian/signoff (unblocks git push); no self-assigned success.
 PR/MR: <URL of the pull/merge request opened after signoff | exempt — no code changes>
 Proposed KB amendments: <none | list>
@@ -24,8 +25,9 @@ Proposed KB amendments: <none | list>
 HADRIAN — ESCALATION
 Objective: <...>
 Stopped at cycle N / budget M. Reason: <budget exhausted | same failure 2x consecutive | blocker | stopped by user>
-Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>; degraded modes active: <none | list>
+Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced> rubric=<independent|in-process>; degraded modes active: <none | list>
 DoD status: <clause → PASS|FAIL|NOT-ATTEMPTED, one line each with evidence ref>
+Rubric: <last per-criterion scores, criterion → score; sub-anchor clauses named | not yet run>
 Blocked on: <what exactly is missing — env, decision, access>
 Tried: <each cycle's action in one line>
 Proposed amendments (contract/KB): <list or none>

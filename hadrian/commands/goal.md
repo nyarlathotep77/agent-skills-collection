@@ -40,14 +40,15 @@ Subcommands never start a new goal; they operate on an existing one. `.hadrian/c
    - Header: Started timestamp, Budget (<resolved N> cycles), Spec/KB references.
    - Numbered Definition of Done (DoD) clauses.
     - Quality Gates table (`| # | Gate | Source | Command | Status |`), every row's Source one of `spec`, `kb:<file>`, `inferred`, `derived`.
+   - Rubric section derived from the DoD clauses — one or more criteria per clause with scale + anchored descriptors; every criterion records its source (`spec`, `kb:<file>`, `inferred`, `derived`) exactly like gates; frozen after intake, amendments human-only (references/rubric-gate.md).
    - Constraints and Verification Commands.
 5. Initialize `.hadrian/state.md` with:
-     `Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>`
+     `Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced> rubric=<independent|in-process>`
 6. Show the written contract to the user BEFORE Phase 1 begins — presentation precedes any work; do not wait for confirmation before starting Phase 1.
 
 ### 2. Phase 1 & 2 — Cycle loop (bias for direct action)
 
-**Capability probe (Phase 1, once per goal):** before the first cycle, run the capability probe exactly once per goal (references/capability-probe.md) and record the results in the `.hadrian/state.md` header: `verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>`. Every missing capability maps to a documented degraded mode — adapt, don't fail. Degraded modes are recorded, not hidden: they appear in every completion/escalation report so the human knows which guarantees were active.
+**Capability probe (Phase 1, once per goal):** before the first cycle, run the capability probe exactly once per goal (references/capability-probe.md) and record the results in the `.hadrian/state.md` header: `verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced> rubric=<independent|in-process>`. Every missing capability maps to a documented degraded mode — adapt, don't fail. Degraded modes are recorded, not hidden: they appear in every completion/escalation report so the human knows which guarantees were active.
 
 **Budget check first:** before starting each cycle, count completed cycles in `.hadrian/state.md`. If the budget is exhausted → stop immediately and write an escalation report with reason `budget exhausted` (format: references/escalation-report.md). Never silently continue past the budget; only a human amendment recorded in state extends it.
 
@@ -67,8 +68,9 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
    4. Any edit to `.hadrian/contract.md`
 
    No gate, test, or assertion may be weakened to force a pass; amendments are proposed in reports and applied by a human as a normal commit (canonical checklist: references/gates.md).
-5. **Record state**: append a cycle entry to `.hadrian/state.md`: n | action | gates (name: result + one line of evidence) | review verdict | next step — every field present, each gate's evidence captured in this cycle. The state file is the single source of truth for resuming an active goal across sessions; nothing may be recorded only in session memory.
-6. **Iterate**: proceed immediately to the next cycle without stalling or asking unnecessary questions unless blocked by an unresolvable error — and only while budget remains (see budget check above).
+5. **Rubric Gate**: after this cycle's Quality + Review Gates, [independent] invoke the rubric-evaluator subagent with contract + captured evidence → per-criterion score on its anchored scale (0–4) with cited evidence; it never sees other evaluators' scores and never implements. [degraded] run an in-process scoring pass against the same frozen rubric. The rubric runs at minimum on stop conditions (completion/escalation) and whenever the remaining budget is low, and it never overrides gates — a clause that FAILs its gate cannot count as complete regardless of rubric points, and NOT-RUN still blocks completion (references/rubric-gate.md).
+6. **Record state**: append a cycle entry to `.hadrian/state.md`: n | action | gates (name: result + one line of evidence) | review verdict | next step — every field present, each gate's evidence captured in this cycle; when the Rubric Gate runs, append its per-criterion scores (clause score = minimum of its criteria) after the review verdict as an optional extension field. The state file is the single source of truth for resuming an active goal across sessions; nothing may be recorded only in session memory.
+7. **Iterate**: proceed immediately to the next cycle without stalling or asking unnecessary questions unless blocked by an unresolvable error — and only while budget remains (see budget check above).
 
 ### 3. Execution guardrails (strict anti-entropy)
 
@@ -82,11 +84,11 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
 
 ## Stop conditions & reports
 
-- All DoD clauses PASS + Review Gate clean → completion report (format: references/escalation-report.md); acceptance is human-owned — present the diff summary + evidence table and create `.hadrian/signoff` **only** on explicit in-session user approval (never self-assigned success). After signoff, coding-task goals end in an opened PR/MR: push the feature branch, open a pull request (GitHub via `gh`) or merge request (GitLab), record its URL in the completion report; goals without code changes are exempt.
+- All DoD clauses PASS + Review Gate clean + Rubric Gate meets its threshold (no clause below its anchor; mean ≥ contract threshold) → completion report (format: references/escalation-report.md); acceptance is human-owned — present the diff summary + evidence table + rubric scorecard and create `.hadrian/signoff` **only** on explicit in-session user approval (never self-assigned success). After signoff, coding-task goals end in an opened PR/MR: push the feature branch, open a pull request (GitHub via `gh`) or merge request (GitLab), record its URL in the completion report; goals without code changes are exempt.
 - Ticket-tied goals add a ticket-sync section to every completion/escalation report: sub-tasks created or reused (refs), every transition with its triggering activity, the story's final status, and any open children. On escalation or budget exhaustion the story is left in its current state — no speculative transitions.
 - NOT-RUN gates block completion: list them in the report and require an explicit human waiver recorded in `.hadrian/state.md` as `WAIVER: gate=<name> by=<user> at=<UTC timestamp> reason=<...>`. The agent never self-waives.
 - Budget exhausted / same failure twice in a row / blocker → escalation report (objective, cycles used vs budget, per-clause status with evidence refs, what is blocked, recommended next step). An escalation is a valid outcome — hand off, don't grind.
 
 ## Skill reference
 
-Full protocol details live in the Hadrian skill that ships alongside this command. Load it by ID (`hadrian`) through your harness's skill mechanism (OpenCode: the `skill` tool; Claude Code: its skills directory). When working from the plugin source tree, the files are at `../SKILL.md` (phases), `../references/gates.md`, `../references/capability-probe.md`, `../references/escalation-report.md`, templates in `../templates/`.
+Full protocol details live in the Hadrian skill that ships alongside this command. Load it by ID (`hadrian`) through your harness's skill mechanism (OpenCode: the `skill` tool; Claude Code: its skills directory). When working from the plugin source tree, the files are at `../SKILL.md` (phases), `../references/gates.md`, `../references/rubric-gate.md`, `../references/capability-probe.md`, `../references/escalation-report.md`, templates in `../templates/`.

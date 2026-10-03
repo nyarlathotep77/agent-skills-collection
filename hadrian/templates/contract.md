@@ -15,6 +15,15 @@
 |---|------|--------|---------|--------|
 | 1 | <name> | spec\|kb:<file>\|inferred\|derived | `<command>` | pending |
 
+## Rubric
+Scale per criterion: 0 = none of the substance present; 1 = minimal/partial — recognizable attempt, most substance missing; 2 = mostly present with material gaps; 3 = solid — meets the clause, minor issues only; 4 = full credit. Per-criterion anchor (minimum counting as complete): <default 3>. Mean threshold across all criteria: <default ≥ 3.0>. Frozen after intake; amendments human-only.
+
+| # | Criterion (DoD clause) | Source | Anchored descriptors (4 / 2 / 0) |
+|---|------------------------|--------|----------------------------------|
+| R1 | C<n> — <criterion text> | spec\|kb:<file>\|inferred\|derived | 4: <...>; 2: <...>; 0: <...> |
+
+<!-- Clause score = minimum of its criterion scores; completion requires no clause below its anchor and mean ≥ threshold (references/rubric-gate.md). -->
+
 ## Constraints
 - <e.g. no new dependencies, touch only src/foo, ...>
 
