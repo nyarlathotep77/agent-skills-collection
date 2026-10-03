@@ -52,6 +52,8 @@ Subcommands never start a new goal; they operate on an existing one. `.hadrian/c
 
 **Branch discipline:** before applying any change, record the current git branch in `.hadrian/state.md`. Never apply changes directly to the repository's default (main/master) branch — first create and check out a dedicated work branch for the goal (e.g., `hadrian/<goal-slug>`), then apply all changes on it.
 
+**Ticket sync:** when the objective is tied to a project-management ticket (e.g. "Execute <PM> US#<n>", or an explicit URL / slug+ref), mirror reality into that tool per references/taiga-sync.md — decompose the approved plan into child sub-tasks of the story **before work starts** (idempotently: reuse and report existing, never duplicate); move each sub-task to in-progress on its first real work step with a comment stating what was started; move it to done only with captured verification evidence (fail-closed) plus an outcome comment. The main agent moves the containing story — it stays initial until the first pickup, then In Progress (comment names the picked-up sub-task), and Done only after re-reading confirms every child task is closed. Statuses come from project configuration by role; never hard-coded or invented. A worker/sub-agent moves only its own assigned task. The PM tool is pluggable; Taiga (taiga_bridge MCP tools) is the reference implementation. Goals without a ticket skip this entirely.
+
 Execute tightly focused cycles until all DoD clauses PASS or a stop condition hits:
 
 1. **Focus**: pick the smallest concrete code change that advances a DoD clause.
@@ -79,6 +81,7 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
 ## Stop conditions & reports
 
 - All DoD clauses PASS + Review Gate clean → completion report (format: references/escalation-report.md); acceptance is human-owned — present the diff summary + evidence table and create `.hadrian/signoff` **only** on explicit in-session user approval (never self-assigned success). After signoff, coding-task goals end in an opened PR/MR: push the feature branch, open a pull request (GitHub via `gh`) or merge request (GitLab), record its URL in the completion report; goals without code changes are exempt.
+- Ticket-tied goals add a ticket-sync section to every completion/escalation report: sub-tasks created or reused (refs), every transition with its triggering activity, the story's final status, and any open children. On escalation or budget exhaustion the story is left in its current state — no speculative transitions.
 - NOT-RUN gates block completion: list them in the report and require an explicit human waiver recorded in `.hadrian/state.md` as `WAIVER: gate=<name> by=<user> at=<UTC timestamp> reason=<...>`. The agent never self-waives.
 - Budget exhausted / same failure twice in a row / blocker → escalation report (objective, cycles used vs budget, per-clause status with evidence refs, what is blocked, recommended next step). An escalation is a valid outcome — hand off, don't grind.
 

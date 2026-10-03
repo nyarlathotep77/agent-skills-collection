@@ -2,7 +2,7 @@
 name: taiga-status-sync
 description: Keep Taiga task and user story statuses in sync with the work an agent is actually performing - start, progress, block, and complete transitions via the taiga_bridge MCP tools. Use when an agent begins, advances, blocks on, or finishes a Taiga task or user story it owns; main agents may update tasks and their parent user story, sub-agents only their own assigned task.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Taiga Status Sync — keep ticket state in step with the work you actually do
@@ -31,6 +31,7 @@ Status names differ per project and entity type. Never hard-code or guess a stat
 | Activity performed | Target status role | Notes |
 |--------------------|-------------------|-------|
 | Work on a task has started (first real step taken) | first open/in-progress status ("In Progress", "Doing") | Only after you actually start — not at assignment time |
+| First sub-task of a user story is picked up (moved to in-progress) | in-progress user-story status ("In Progress") | **Main agent only, same cycle as the sub-task move.** Comment names the picked-up sub-task. While all child tasks are still in their initial open status, the story stays in its initial status — no transition before the first pickup |
 | You are blocked and cannot proceed | the project's blocked status, if it exists | Otherwise keep the current status and add a comment describing the blocker + what unblocks it. Never invent a "Blocked" status |
 | Task work is done **and verified** (tests/build pass, read-back confirms) | closed/done task status ("Done", "Closed") | Verification evidence must exist before this transition — no "done on faith" |
 | All child tasks of a user story are in a closed state (verified by re-reading the story's `related.tasks`) | closed/done user-story status | **Main agent only.** Never mark a story done while any child task is open — if some remain, report them instead |
