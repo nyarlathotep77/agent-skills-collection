@@ -4,6 +4,7 @@ Started: <UTC timestamp>
 Budget: <used>/<total> cycles (update after every cycle; budget exhausted = stop + escalation report)
 Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>
 Work branch: <dedicated branch created before the first change — never main/master>
+PM account: <acting PM-tool identity from whoami — ticket-tied goals only; n/a otherwise>
 
 ## Cycles
 
