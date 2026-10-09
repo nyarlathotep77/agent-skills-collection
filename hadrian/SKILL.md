@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.12.0"
+  version: "0.13.0"
 ---
 
 # Hadrian — L3 Goal Loop
@@ -17,13 +17,14 @@ You are running an L3 (conditional autonomy) goal loop: you execute autonomously
 
 ## Phase 0 — Contract intake
 1. If `.hadrian/contract.md` already exists for a different objective: move the old `.hadrian/*` to `.hadrian/archive/<UTC timestamp>/` and delete any stale `.hadrian/signoff`.
-2. Discover quality gates in this fixed order — later steps only fill gaps left by earlier ones (record each gate's source as `spec`, `kb:<file>`, `inferred`, or `derived`):
+2. Keep `.hadrian/` out of version control: it is per-repo runtime state, never shipped code. Ensure the repo's `.gitignore` contains `.hadrian/` (add it if missing); if `.hadrian/*` files are already tracked, untrack them with `git rm -r --cached .hadrian` as part of the first work-branch commit — never rewrite history.
+3. Discover quality gates in this fixed order — later steps only fill gaps left by earlier ones (record each gate's source as `spec`, `kb:<file>`, `inferred`, or `derived`):
    1. Explicit spec reference → its Contract/DoD section wins for that goal
    2. Project knowledge base at the repo root — whichever exist: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`; take the union of their quality/DoD/verification requirements. Conflicts between KB files are flagged in `.hadrian/state.md` and asked to the human; never resolved silently
    3. Toolchain auto-detection (`package.json` scripts, Makefile targets, Gradle tasks, pyproject) — only where the KB is silent; mark as INFERRED
    4. Verifiable clauses derived from the objective text
-3. Write `.hadrian/contract.md` (see templates/contract.md): objective, numbered DoD clauses, constraints, gate list where every row carries its source label (`spec`, `kb:<file>`, `inferred`, or `derived`) + command, budget, verification commands.
-4. Show the written contract to the user BEFORE Phase 1 begins — presentation precedes any work; do not wait for confirmation before starting Phase 1.
+4. Write `.hadrian/contract.md` (see templates/contract.md): objective, numbered DoD clauses, constraints, gate list where every row carries its source label (`spec`, `kb:<file>`, `inferred`, or `derived`) + command, budget, verification commands.
+5. Show the written contract to the user BEFORE Phase 1 begins — presentation precedes any work; do not wait for confirmation before starting Phase 1.
 
 ## Phase 1 — Capability probe (once per goal)
 Run exactly once per goal, before the first cycle. Record in the header of `.hadrian/state.md` which capabilities exist:
@@ -61,6 +62,7 @@ Stop when all DoD clauses PASS, Review Gate is clean, and Rubric Gate meets its 
 5. Evidence over claims: every PASS cites captured output.
 6. Never apply changes directly to the repository's default branch (main/master): create and check out a dedicated work branch before the first change, and record it in state.
 7. State persistence is required: if `.hadrian/state.md` cannot be written, stop the loop and report instead of running; persistence is never silently degraded.
+8. Never version-control `.hadrian/`: it is per-repo runtime state (contracts, cycle logs, gate evidence), not shipped code. Keep the repo's `.gitignore` covering `.hadrian/`; untrack any already-tracked files with `git rm -r --cached .hadrian` on the first work-branch commit — never rewrite history.
 
 ## References
 - references/capability-probe.md — harness matrix and adaptation rules

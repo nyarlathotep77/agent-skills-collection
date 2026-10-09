@@ -30,19 +30,20 @@ Subcommands never start a new goal; they operate on an existing one. `.hadrian/c
 ### 1. Phase 0 — Contract intake
 
 1. If `.hadrian/contract.md` already exists for a different goal: move existing `.hadrian/*` to `.hadrian/archive/<timestamp>/` and remove any stale `.hadrian/signoff`.
-2. Discover Quality Gates in this fixed order — later steps only fill gaps left by earlier ones (record each gate's source as `spec`, `kb:<file>`, `inferred`, or `derived`):
+2. Keep `.hadrian/` out of version control: it is per-repo runtime state, never shipped code. Ensure the repo's `.gitignore` contains `.hadrian/` (add it if missing); if `.hadrian/*` files are already tracked, untrack them with `git rm -r --cached .hadrian` as part of the first work-branch commit — never rewrite history.
+3. Discover Quality Gates in this fixed order — later steps only fill gaps left by earlier ones (record each gate's source as `spec`, `kb:<file>`, `inferred`, or `derived`):
    - Spec reference → its Contract/DoD section (source `spec`) — the baseline when present.
    - Repository KB (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`) — union of their quality/DoD/verification requirements; conflicts between KB files are flagged in `.hadrian/state.md` and asked to the human, never resolved silently (source `kb:<file>`).
    - Project toolchain tasks (e.g., `./gradlew test`, `npm test`, `cargo test`, `pytest`) — only where the KB is silent; mark INFERRED (source `inferred`).
    - Verifiable clauses derived from the objective (source `derived`).
-3. Create `.hadrian/contract.md` immediately:
+4. Create `.hadrian/contract.md` immediately:
    - Header: Started timestamp, Budget (<resolved N> cycles), Spec/KB references.
    - Numbered Definition of Done (DoD) clauses.
     - Quality Gates table (`| # | Gate | Source | Command | Status |`), every row's Source one of `spec`, `kb:<file>`, `inferred`, `derived`.
    - Constraints and Verification Commands.
-4. Initialize `.hadrian/state.md` with:
+5. Initialize `.hadrian/state.md` with:
      `Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced>`
-5. Show the written contract to the user BEFORE Phase 1 begins — presentation precedes any work; do not wait for confirmation before starting Phase 1.
+6. Show the written contract to the user BEFORE Phase 1 begins — presentation precedes any work; do not wait for confirmation before starting Phase 1.
 
 ### 2. Phase 1 & 2 — Cycle loop (bias for direct action)
 
@@ -75,6 +76,7 @@ Execute tightly focused cycles until all DoD clauses PASS or a stop condition hi
 - **Evidence over claims:** every PASS must cite captured test/build command output.
 - **Immutable contract:** never edit `.hadrian/contract.md` after intake.
 - **Branch discipline:** record the current git branch in `.hadrian/state.md` before the first change. Never apply changes directly to the repository's default (main/master) branch — create and check out a dedicated work branch for the goal (e.g., `hadrian/<goal-slug>`) before applying any change.
+- **Runtime state is never version-controlled:** keep `.hadrian/` in the repo's `.gitignore`; untrack any already-tracked files with `git rm -r --cached .hadrian` on the first work-branch commit. Never rewrite history to purge it.
 - **No git push:** do not run `git push` without `.hadrian/signoff`.
 - **State persistence is required:** if writing to `.hadrian/state.md` becomes impossible, stop the loop and report instead of running — persistence is never silently degraded.
 
