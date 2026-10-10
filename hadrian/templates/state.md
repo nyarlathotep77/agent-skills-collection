@@ -8,18 +8,19 @@ PM account: <acting PM-tool identity from whoami — ticket-tied goals only; n/a
 
 ## Cycles
 
-Each cycle entry contains exactly these fields: n | action | gates (name: result + one line of evidence) | review verdict | next step, plus an optional rubric scores extension when the Rubric Gate ran (criterion → score + one line of evidence each; clause score = minimum of its criteria). This file is the single source of truth for resuming an active goal across sessions — resume relies only on contract + state, never on session memory.
+Each cycle entry contains exactly these fields: n | action | gates (one VERDICT record per gate row) | review verdicts (one VERDICT record per DoD clause + the weakening check CW) | next step, plus a rubric section of one VERDICT record per criterion when the Rubric Gate ran. Every gate/review/rubric result is a machine-verifiable verdict record per references/verdict-contract.md — prose-only verdicts are invalid by definition. This file is the single source of truth for resuming an active goal across sessions — resume relies only on contract + state, never on session memory.
 
 ### Cycle 1
 - Action: <what changed, files touched>
-- Gates:
-  - <gate>: PASS — <one line of captured evidence>
-  - <gate>: FAIL — <error excerpt>
-  - <gate>: NOT-RUN — <reason, e.g. no emulator>
-- Tool error = FAIL for that gate and the cycle (fail-closed); a NOT-RUN gate blocks completion until a human waiver below; the agent never self-waives.
-- Review: <PASS|FAIL> — per-clause verdicts with cited evidence (independent or degraded mode), or the single weakening hit that failed the cycle
-- Rubric (optional, when the Rubric Gate ran): <criterion → score> — per-criterion scores on the anchored scale with one line of evidence each; clause score = minimum of its criteria
+- Gates: (one record per row of the contract's Quality Gates table)
+    VERDICT kind=gate id=G1 status=<PASS|FAIL|NOT-RUN|WAIVED> evidence="<one line of captured output>" source=<spec|kb:<file>|inferred|derived>
+- Review: (one record per DoD clause + CW for the gate-weakening check)
+    VERDICT kind=review id=C1 status=<PASS|FAIL|NOT-RUN> evidence="<cited evidence, or the single weakening hit that failed the cycle>" source=<independent|in-process>
+    VERDICT kind=review id=CW status=<PASS|FAIL> evidence="<no hits | the single hit that failed the cycle>" source=<independent|in-process>
+- Rubric (only when the Rubric Gate ran; one record per criterion row):
+    VERDICT kind=rubric id=R1 status=<PASS|FAIL> score=<0..4> evidence="<one line of captured output>" source=<spec|kb:<file>|inferred|derived>
 - Next: <next smallest step>
 
-<!-- Waivers (human-only): append exactly this block when a human waives a NOT-RUN gate -->
+<!-- Malformed verdict records (any line starting with VERDICT that fails references/verdict-contract.md) are treated as NOT-RUN on resume/status/stop and block completion — never guessed or coerced into a pass. -->
+<!-- Waivers (human-only, gates only): append exactly this block when a human waives a NOT-RUN gate; it is what makes a status=WAIVED record for that gate valid -->
 <!-- WAIVER: gate=<name> by=<user> at=<UTC timestamp> reason=<...> -->

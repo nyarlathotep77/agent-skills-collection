@@ -12,7 +12,7 @@ Follow this order strictly; later steps only fill gaps left by earlier ones — 
 Record every gate's source in the contract table: `spec`, `kb:<file>`, `inferred`, or `derived`.
 
 ## Execution (Quality Gate, each cycle)
-- Run each gate command; capture real output. PASS requires captured evidence (one line of it goes into state.md).
+- Run each gate command; capture real output. PASS requires captured evidence, recorded as a `VERDICT kind=gate` record in the cycle entry (references/verdict-contract.md) — one line of captured output goes into its evidence field.
 - A verification tool erroring = FAIL for that gate and the cycle (fail-closed). Never interpret or downgrade an error to "not applicable".
 - A gate whose precondition is missing (no emulator, no service) = NOT-RUN. NOT-RUN blocks completion and requires a human waiver — see below. The agent never self-waives.
 
@@ -20,6 +20,8 @@ Record every gate's source in the contract table: `spec`, `kb:<file>`, `inferred
 When the user explicitly waives a NOT-RUN gate in-session, append to `.hadrian/state.md`:
 
 `WAIVER: gate=<name> by=<user> at=<UTC timestamp> reason=<...>`
+
+A `WAIVER:` line is what makes a `status=WAIVED` verdict record for that gate valid; without it the record is malformed (references/verdict-contract.md).
 
 ## Gate-weakening check (Review Gate)
 The Review Gate diffs the change against the KB's gate definitions and fails the cycle if any of these appear:

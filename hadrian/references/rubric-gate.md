@@ -23,7 +23,7 @@ Both modes must exist; adapt, don't fail. The active mode is recorded in every c
 
 ## 3. Execution
 
-- After each cycle's Quality + Review Gates: score every criterion against this cycle's captured evidence and append per-criterion scores with one line of evidence to `.hadrian/state.md` (optional extension field after the review verdict in the cycle entry).
+- After each cycle's Quality + Review Gates: score every criterion against this cycle's captured evidence and record each as a `VERDICT kind=rubric` record (`score=<0..4>` + one line of evidence) in the cycle entry's Rubric section (references/verdict-contract.md).
 - The rubric runs at minimum on stop conditions (completion/escalation) and whenever the remaining budget is low — a final scorecard must exist before any report.
 - Scoring uses only captured evidence from state.md; a criterion with no evidence scores 0–1, never higher (fail-closed).
 
