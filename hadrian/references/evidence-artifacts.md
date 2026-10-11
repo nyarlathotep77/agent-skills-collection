@@ -41,6 +41,38 @@ JSON form (same fields, for machine consumption):
 
 **Excerpt policy:** full stdout+stderr when small (≤ ~200 lines); otherwise the last 200 lines plus a note `truncated: kept last 200 of <N> lines`. The excerpt must be sufficient to verify the PASS/FAIL without re-running the command.
 
+## Error classification — transient vs fatal (retry policy)
+
+A verification tool error is classified **before any verdict is recorded**. The class decides whether the gate may be retried within this cycle; it never changes what a completed check's result means, and it never weakens fail-closed semantics — no PASS without a clean run to completion.
+
+- **transient** — infrastructure failure: the tool crashed, timed out, hit a network failure, or lost its binary mid-run. The check **never completed**, so no verdict is possible from that attempt.
+- **fatal** — the check ran to completion and reported a real problem: an assertion/test failure, a compile error, or any non-zero exit from a check that ran to completion.
+
+### Retry policy (transient only)
+
+- A transient failure may be retried up to **N times within the same cycle**, with **default N = 1** (one retry after the initial attempt). A goal's contract may declare a different N for specific gates in its Quality Gates table; that value is frozen with the contract and never changed mid-goal.
+- Retries happen inside the current cycle and consume **no additional cycle budget** — budget accounting counts cycles, not attempts.
+- Every retry is recorded in `.hadrian/state.md` under the cycle entry as a `RETRY` line (format below) carrying UTC timestamp + reason (error class + one-line detail). `RETRY` lines are log lines, not verdict records: they never start with `VERDICT` and are outside references/verdict-contract.md validation.
+- **Fatal failures are never retried.** They record `FAIL` immediately on first occurrence — exactly as before this rule existed.
+- If the retry budget is exhausted (all N retries still transient), the gate records `NOT-RUN`: by definition the check never completed, so no verdict is possible; the evidence field cites each attempt's timestamp + error class. NOT-RUN blocks completion until a human waives it or fixes the environment — fail-closed preserved. (Any attempt that produced a definitive result — non-zero exit from a run to completion — is fatal by definition and would already have recorded FAIL on first occurrence, so the exhaustion path always ends NOT-RUN.)
+- The final attempt's full evidence (command, exit code, output excerpt) is written to `.hadrian/evidence/<cycle>-<G<n>>.{md,json}` exactly as for any gate run; earlier attempts are summarized in the `RETRY` lines and may be appended to the same artifact under an `## Attempts` note.
+
+### RETRY record format (state.md, inside the cycle entry)
+
+```
+RETRY gate=G<n> attempt=<k>/<N> at=<UTC timestamp> reason="<transient error class: one-line detail>"
+```
+
+`attempt` counts retries only (`1/<N>` = first retry after the initial failed run). One line per retry; no other fields. Example inside a cycle entry:
+
+```
+### Cycle 2
+- Action: ...
+- Gates:
+    RETRY gate=G3 attempt=1/1 at=2026-10-11T04:30:00Z reason="timeout: npm registry unreachable (ECONNRESET)"
+    VERDICT kind=gate id=G3 status=PASS evidence=".hadrian/evidence/2-G3.md — json.tool rc=0 on retry" source=kb:AGENTS.md
+```
+
 ## Ordering rule — write before verdict (fail-closed)
 
 For every gate in every cycle, in this order:
