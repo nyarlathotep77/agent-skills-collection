@@ -12,7 +12,7 @@ Follow this order strictly; later steps only fill gaps left by earlier ones — 
 Record every gate's source in the contract table: `spec`, `kb:<file>`, `inferred`, or `derived`.
 
 ## Execution (Quality Gate, each cycle)
-- Run each gate command; capture real output. PASS requires captured evidence, recorded as a `VERDICT kind=gate` record in the cycle entry (references/verdict-contract.md) — one line of captured output goes into its evidence field.
+- Run each gate command; capture real output and exit code. Before recording the verdict, write that gate's full evidence (command, exit code, relevant output excerpt) to `.hadrian/evidence/<cycle>-<G<n>>.{md,json}` and verify it was written — a write failure makes the gate NOT-RUN with `evidence="artifact write failed: <reason>"` (fail-closed), and a PASS/FAIL without its existing artifact file is invalid. The verdict record's evidence field keeps one line of captured output plus the artifact path; the full record lives in the file (references/evidence-artifacts.md).
 - A verification tool erroring = FAIL for that gate and the cycle (fail-closed). Never interpret or downgrade an error to "not applicable".
 - A gate whose precondition is missing (no emulator, no service) = NOT-RUN. NOT-RUN blocks completion and requires a human waiver — see below. The agent never self-waives.
 
