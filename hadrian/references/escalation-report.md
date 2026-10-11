@@ -9,6 +9,7 @@ HADRIAN — GOAL COMPLETE
 Objective: <...>
 Cycles used: N / budget M
 Branch: <dedicated work branch where the changes live — never main/master>
+Worktree: <absolute path of the goal's dedicated worktree | degraded — single-checkout branch discipline>; state on stop: <left intact with unmerged work (removal only after merge or explicit user direction) | merged & removed per user direction>
 Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced> rubric=<independent|in-process>; degraded modes active: <none | list>
 DoD: all clauses PASS (evidence in state.md cycles 1..N)
 Gates: <name → result; waivers listed if any>
@@ -26,6 +27,7 @@ Proposed KB amendments: <none | list>
 HADRIAN — ESCALATION
 Objective: <...>
 Stopped at cycle N / budget M. Reason: <budget exhausted | same failure 2x consecutive | blocker | stopped by user>
+Worktree: <absolute path of the goal's dedicated worktree | degraded — single-checkout branch discipline> — left intact with unmerged work; removal only after merge or explicit user direction, never silent
 Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced> rubric=<independent|in-process>; degraded modes active: <none | list>
 DoD status: <clause → PASS|FAIL|NOT-ATTEMPTED, one line each with evidence ref>
 Rubric: <last per-criterion scores, criterion → score; sub-anchor clauses named | not yet run>
