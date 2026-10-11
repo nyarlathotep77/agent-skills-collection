@@ -2,7 +2,7 @@
 name: hadrian
 description: Agentic L3 goal loop (ASDLC conditional autonomy). Use when the user runs /goal or asks to drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.
 metadata:
-  version: "0.18.0"
+  version: "0.19.0"
 ---
 
 # Hadrian — L3 Goal Loop
@@ -40,7 +40,7 @@ Before applying any change, isolate the goal in its own git worktree (worktree d
 Repeat until a stop condition. Each cycle:
 1. Re-read `.hadrian/contract.md` and the last state entry. Choose the smallest change that advances one DoD clause.
 2. Make the change.
-3. **Quality Gate**: run every gate command in the contract; capture real output and exit code. Before recording each verdict, write that gate's full evidence (command, exit code, relevant output excerpt) to `.hadrian/evidence/<cycle>-<G<n>>.{md,json}` and verify it was written — a write failure makes the gate NOT-RUN (fail-closed), and a PASS/FAIL without its existing artifact file is invalid. A tool error = FAIL (fail-closed). A gate that cannot be executed (missing environment) = NOT-RUN, which blocks completion (references/evidence-artifacts.md).
+3. **Quality Gate**: run every gate command in the contract; capture real output and exit code. Before recording each verdict, write that gate's full evidence (command, exit code, relevant output excerpt) to `.hadrian/evidence/<cycle>-<G<n>>.{md,json}` and verify it was written — a write failure makes the gate NOT-RUN (fail-closed), and a PASS/FAIL without its existing artifact file is invalid. A tool error is classified transient vs fatal before any verdict (references/evidence-artifacts.md): fatal = FAIL immediately, never retried; transient = bounded same-cycle retry (default 1), every retry recorded in state.md with timestamp + reason, then NOT-RUN/FAIL per existing rules — fail-closed preserved. A gate that cannot be executed (missing environment) = NOT-RUN, which blocks completion.
 4. **Review Gate**: [independent] invoke the verifier subagent (`hadrian-verifier` or equivalent read-only reviewer) with contract + diff + gate outputs → per-clause PASS/FAIL with cited evidence; it also runs the gate-weakening check (references/gates.md): any single hit — a test/assertion edited to force a pass, a lowered gate threshold or removed required check, an edit to KB quality/DoD sections (`AGENTS.md`/`CLAUDE.md`/`GEMINI.md`), or any edit to `.hadrian/contract.md` — fails the cycle. [degraded] run an in-process adversarial pass against the same checklist and produce the same per-clause PASS/FAIL with cited evidence.
 5. **Rubric Gate**: after this cycle's Quality + Review Gates, [independent] invoke the rubric-evaluator subagent with contract + captured evidence → per-criterion score on its anchored scale (0–4) with cited evidence; it never sees other evaluators' scores and never implements. [degraded] run an in-process scoring pass against the same frozen rubric. The rubric runs at minimum on stop conditions (completion/escalation) and whenever the remaining budget is low, and it never overrides gates — a clause that FAILs its gate cannot count as complete regardless of rubric points, and NOT-RUN still blocks completion (references/rubric-gate.md).
 6. Append a cycle entry to `.hadrian/state.md`: n | action | gates | review verdicts | next step — every gate, review-clause, weakening-check (CW), and rubric-criterion result written as a machine-verifiable `VERDICT` record per references/verdict-contract.md; prose-only verdicts are invalid by definition. When the Rubric Gate runs its records carry score=<0..4> (clause score = minimum of its criteria). The state file is the single source of truth for resuming an active goal across sessions.
@@ -59,7 +59,7 @@ Stop when all DoD clauses PASS, Review Gate is clean, and Rubric Gate meets its 
 1. Never modify `.hadrian/contract.md`. Amendments are proposed in reports; a human applies them.
 2. Never weaken tests, assertions, gate thresholds, or KB quality definitions to force a pass.
 3. No `git push` without `.hadrian/signoff`.
-4. A verification tool error = FAIL for that gate and the cycle (fail-closed), never success; it is never downgraded to "not applicable".
+4. A verification tool error is classified transient vs fatal (references/evidence-artifacts.md): fatal = FAIL for that gate and the cycle, never retried; transient = bounded same-cycle retry within budget, then NOT-RUN/FAIL per existing rules — never success, never downgraded to "not applicable", no PASS without a clean run to completion.
 5. Evidence over claims: every PASS cites captured output.
 6. Never apply changes directly to the repository's default branch (main/master): create and check out a dedicated work branch before the first change, and record it in state.
 7. State persistence is required: if `.hadrian/state.md` cannot be written, stop the loop and report instead of running; persistence is never silently degraded.

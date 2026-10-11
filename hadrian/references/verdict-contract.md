@@ -21,6 +21,8 @@ Single-line reference regex for validators:
 
 A line that starts with `VERDICT` but fails this regex — or any per-kind rule below — is **malformed**.
 
+`RETRY` lines (transient-retry log lines, format: references/evidence-artifacts.md) do not start with `VERDICT`, are not verdict records, and are outside this contract's validation — they can never be malformed and never clear or block a gate id; the gate's own VERDICT record is the only thing that does.
+
 ### Fields
 
 | Field | Type / enum | Applies to | Rule |
