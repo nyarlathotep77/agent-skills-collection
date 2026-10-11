@@ -4,6 +4,7 @@ Started: <UTC timestamp>
 Budget: <used>/<total> cycles (update after every cycle; budget exhausted = stop + escalation report)
 Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced> rubric=<independent|in-process>
 Work branch: <dedicated branch created before the first change — never main/master>
+Worktree: <absolute path of the goal's worktree (git worktree add .hadrian/worktrees/<goal-slug>) | degraded — <reason>: single-checkout branch discipline> | base commit: <sha at creation>
 PM account: <acting PM-tool identity from whoami — ticket-tied goals only; n/a otherwise>
 
 ## Cycles
