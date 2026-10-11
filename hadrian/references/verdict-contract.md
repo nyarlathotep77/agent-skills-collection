@@ -37,6 +37,7 @@ A line that starts with `VERDICT` but fails this regex — or any per-kind rule 
 **kind=gate** — one record per row of the contract's Quality Gates table, in every cycle.
 - `id=G<n>` where n is the gate's row number in that table.
 - All four statuses valid. `WAIVED` additionally requires a matching human waiver line for this gate (format: references/gates.md); without one the record is malformed. The agent never writes WAIVED itself.
+- Artifact existence: `PASS` and `FAIL` require their evidence artifact — the `evidence` field must reference `.hadrian/evidence/<cycle>-<G<n>>.{md,json}` for that cycle, and a record whose referenced file does not exist is malformed (treated as NOT-RUN). A verdict without captured evidence is invalid by construction; the artifact is written before the record (references/evidence-artifacts.md). `NOT-RUN`/`WAIVED` records need no artifact — their evidence states why the gate did not run or who waived it.
 
 **kind=review** — one record per DoD clause plus one for the gate-weakening check, in every cycle.
 - `id=C<n>` where n is the DoD clause number; `id=CW` for the gate-weakening check (PASS when no hit; FAIL with evidence naming the single hit that failed the cycle).
