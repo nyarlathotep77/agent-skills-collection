@@ -3,10 +3,10 @@
   "description": "Agentic L3 goal loop (ASDLC conditional autonomy): drive a bounded objective to verified completion with quality gates, a cycle budget, and a human acceptance gate.",
   "displayName": "Hadrian L3 Goal Loop",
   "entry_points": {
-    "goal": "commands/goal.md"
+    "hadrian-goal": "commands/hadrian-goal.md"
   },
   "name": "hadrian",
-  "version": "0.19.0",
+  "version": "0.20.0",
   "harnesses": [
     "generic",
     "dcode",

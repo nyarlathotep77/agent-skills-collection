@@ -1,6 +1,13 @@
 # Ticket Sync — mirror goal-loop work into the PM tool
 
-Applies only when the goal's objective is tied to a project-management ticket (e.g. "Execute Hadrian US#11", or an explicit Taiga URL / `project_slug` + ref). A goal with no ticket skips this entire procedure. The PM tool is **pluggable**; **Taiga** is the reference implementation, accessed through the `taiga_bridge` MCP tools (`whoami_tool`, `get_entity_by_ref_tool`, `create_entity_tool`, `update_entity_by_ref_tool`, `add_comment_by_ref_tool`). Taiga always mirrors reality: every transition corresponds to work actually performed.
+Mandatory whenever the goal's objective is tied to a project-management ticket (e.g. "Execute Hadrian US#11", or an explicit Taiga URL / `project_slug` + ref). When it applies, ticket sync is **part of the contract**, not an optional side procedure: Phase 0 writes the Ticket Sync section into `.hadrian/contract.md` (templates/contract.md) with its mandatory DoD clauses and quality gates T1/T2, so decomposition, transitions, and fail-closed completion block goal completion exactly like any other clause or gate. A goal with no ticket records `Ticket: none` in the contract header and skips this procedure entirely. The PM tool is **pluggable**; **Taiga** is the reference implementation, accessed through the `taiga_bridge` MCP tools (`whoami_tool`, `get_entity_by_ref_tool`, `create_entity_tool`, `update_entity_by_ref_tool`, `add_comment_by_ref_tool`). Taiga always mirrors reality: every transition corresponds to work actually performed.
+
+## Contract integration — ticket sync is contract content
+
+When a ticket is tied to the goal:
+1. **Phase 0** writes the Ticket Sync section into `.hadrian/contract.md` per templates/contract.md: PM tool, story ref, acting account (`pm_account`, resolved via the identity endpoint), and the status roles resolved from project configuration (§0). It numbers the three mandatory clauses (decomposition before work; evidence-backed transitions; fail-closed story completion) into Definition of Done and adds gates **T1** (decomposition exists — verified by re-reading the story's child tasks *before* the first cycle that performs real work) and **T2** (all child tasks closed with evidence, story in done-role status — verified by re-read at stop), both source `contract`.
+2. **T1 is a precondition of the first work cycle.** No implementation step happens before decomposition exists and has been read back. If T1 cannot pass (PM tool unreachable, identity unresolvable, no status plays a required role), escalate as a blocker instead of starting untracked work — never implement silently without tickets.
+3. **Completion requires T2 PASS** with captured re-read evidence. A goal whose story or child tasks are left open does not complete: it escalates with the open refs + subjects reported, and the story is left in its current state (no speculative transitions).
 
 ## 0. Resolve the status vocabulary first (never invent)
 
