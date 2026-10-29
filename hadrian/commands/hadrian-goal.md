@@ -1,5 +1,5 @@
 ---
-description: Drive a bounded objective to verified completion with the Hadrian L3 goal loop — contract intake, quality gates, cycle budget, human acceptance. Usage: /hadrian-goal <objective> [(max N cycles)] | /hadrian-goal status | /hadrian-goal resume | /hadrian-goal stop
+description: Drive a bounded objective to verified completion with the Hadrian L3 goal loop — contract intake, quality gates, cycle budget, human acceptance. Usage: /hadrian-goal <objective> [(max N cycles)] | /hadrian-goal status | /hadrian-goal pause | /hadrian-goal resume | /hadrian-goal stop | /hadrian-goal amend <changes>
 ---
 
 # Hadrian L3 Goal Execution
@@ -17,10 +17,12 @@ Objective / Command: $ARGUMENTS
 
 ## Subcommand dispatch (check first word of arguments)
 
-Subcommands never start a new goal; they operate on an existing one. `.hadrian/contract.md` + `.hadrian/state.md` are the single source of truth for resuming an active goal across sessions — resume relies only on those files, never on session memory. All subcommands first validate every `VERDICT` record in state against references/verdict-contract.md before acting — malformed records are treated as NOT-RUN for their id, listed explicitly in the output or report, and block completion; they are never guessed or coerced into a pass.
+Subcommands never start a new goal and never trigger archiving; they operate strictly on an existing active goal. `.hadrian/contract.md` + `.hadrian/state.md` are the single source of truth for resuming, pausing, amending, or inspecting an active goal across sessions — subcommands rely only on those files, never on session memory. All subcommands first validate every `VERDICT` record in state against references/verdict-contract.md before acting — malformed records are treated as NOT-RUN for their id, listed explicitly in the output or report, and block completion; they are never guessed or coerced into a pass.
 
 - **`status`**: Read and summarize `.hadrian/state.md` (objective, budget used vs total, last cycle's gates/verdict, next step, waivers) and exit. Do not start or continue the loop. If no state file exists, say so and exit.
+- **`pause`**: Halt the loop cleanly without escalating. Append a `PAUSE` record with UTC timestamp to `.hadrian/state.md` and report current progress and remaining budget. Do not archive; execution can be resumed later with `resume`.
 - **`resume`**: Read `.hadrian/contract.md` and `.hadrian/state.md`, verify they belong to the same active (unsigned) goal, run the budget check, then continue the cycle loop from the last state entry. Do not re-run the capability probe — its result is already recorded in the state header (once per goal). If either file is missing or a signoff exists, report that there is nothing to resume and exit.
+- **`amend <changes>`**: Apply human-directed amendments to `.hadrian/contract.md` (e.g., budget increase, modified DoD clause, added constraint) and record `AMENDMENT: by=<user> at=<UTC timestamp> changes=<...>` into `.hadrian/state.md`. Do not archive.
 - **`stop`**: Halt execution immediately. Write an escalation report (format: references/escalation-report.md) with reason `stopped by user`, append it to `.hadrian/state.md`, and report what remains. Do not run further cycles.
 
 ---
@@ -29,7 +31,7 @@ Subcommands never start a new goal; they operate on an existing one. `.hadrian/c
 
 ### 1. Phase 0 — Contract intake
 
-1. If `.hadrian/contract.md` already exists for a different goal: move existing `.hadrian/*` to `.hadrian/archive/<timestamp>/` and remove any stale `.hadrian/signoff`.
+1. **Immediate clean slate:** when starting a new goal (any invocation that is not an existing-goal subcommand), immediately archive whatever existing active goal state is found in `.hadrian/`. If `.hadrian/contract.md` or `.hadrian/state.md` already exists: move existing active goal artifacts (`contract.md`, `state.md`, `evidence/`, `signoff`) to `.hadrian/archive/<timestamp>/` (leaving `archive/` and `worktrees/` intact) and remove any stale `.hadrian/signoff`. Every new goal starts with a clean slate and fresh artifacts, initializing a distinct tracing thread/session for the harness (e.g. LangSmith) without state pollution from prior runs.
 2. Keep `.hadrian/` out of version control: it is per-repo runtime state, never shipped code. Ensure the repo's `.gitignore` contains `.hadrian/` (add it if missing); if `.hadrian/*` files are already tracked, untrack them with `git rm -r --cached .hadrian` as part of the first work-branch commit — never rewrite history.
 3. Discover Quality Gates in this fixed order — later steps only fill gaps left by earlier ones (record each gate's source as `spec`, `kb:<file>`, `inferred`, or `derived`):
    - Spec reference → its Contract/DoD section (source `spec`) — the baseline when present.
