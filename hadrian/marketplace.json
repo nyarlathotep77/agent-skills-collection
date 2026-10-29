@@ -6,7 +6,7 @@
     "hadrian-goal": "commands/hadrian-goal.md"
   },
   "name": "hadrian",
-  "version": "0.21.0",
+  "version": "0.22.0",
   "harnesses": [
     "generic",
     "dcode",
