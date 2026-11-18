@@ -133,6 +133,17 @@ def opencode_commands_dir(target_dir):
     return os.path.join(os.path.dirname(t), 'commands')
 
 
+def opencode_plugins_dir(target_dir):
+    """Return the OpenCode plugins dir paired with an OpenCode skills target."""
+    t = os.path.abspath(os.path.expanduser(target_dir))
+    if os.path.basename(t) != 'skills':
+        return None
+    parent = os.path.basename(os.path.dirname(t))
+    if parent not in ('opencode', '.opencode'):
+        return None
+    return os.path.join(os.path.dirname(t), 'plugins')
+
+
 def install_skill(skill_id, skills, target_dir):
     skill = next((s for s in skills if s['id'] == skill_id), None)
     if not skill:
@@ -158,6 +169,19 @@ def install_skill(skill_id, skills, target_dir):
             shutil.copyfile(os.path.join(cmds_src, fname),
                             os.path.join(cmds_dir, fname))
             print(f"Installed command /{os.path.splitext(fname)[0]} to {cmds_dir}/{fname}")
+
+    # OpenCode v2 does not discover plugins inside a skill directory; copy the
+    # plugin files into the paired plugins dir so they run automatically.
+    plugins_src = os.path.join(skill['source'], 'plugins')
+    plugins_dir = opencode_plugins_dir(target_dir)
+    if plugins_dir and os.path.isdir(plugins_src):
+        os.makedirs(plugins_dir, exist_ok=True)
+        for fname in sorted(os.listdir(plugins_src)):
+            if fname.startswith('.') or not (fname.endswith('.js') or fname.endswith('.ts')):
+                continue
+            shutil.copyfile(os.path.join(plugins_src, fname),
+                            os.path.join(plugins_dir, fname))
+            print(f"Installed plugin {fname} to {plugins_dir}/{fname}")
     return 0
 
 

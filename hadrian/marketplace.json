@@ -5,6 +5,10 @@
   "entry_points": {
     "hadrian-goal": "commands/hadrian-goal.md"
   },
+  "plugins": {
+    "opencode": "plugins/hadrian-guard.js",
+    "claude-code": "hooks/guard.sh"
+  },
   "name": "hadrian",
   "version": "0.23.0",
   "harnesses": [
