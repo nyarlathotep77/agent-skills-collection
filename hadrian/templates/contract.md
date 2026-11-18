@@ -1,6 +1,7 @@
 # Goal Contract — <objective>
 
 - Started: <UTC timestamp>
+- Status: <INTAKE (Phase 0) | ACTIVE (Phase 1/2) | COMPLETE (Phase 3)>
 - Budget: <N> cycles (default 10)
 - Work branch: <dedicated work branch — never main/master>
 - Spec reference: <path or none>
