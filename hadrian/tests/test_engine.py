@@ -214,6 +214,45 @@ class TestHadrianEngine(unittest.TestCase):
             self.assertIn("- Ticket: smartsparks#327", state_text)
             self.assertIn("Budget used: 0 / 7 cycles", state_text)
 
+    def test_cmd_signoff(self):
+        # 1. No active goal should error
+        err_res = self.engine.cmd_signoff()
+        self.assertEqual(err_res["status"], "ERROR")
+
+        # 2. Intake a goal
+        intake_res = self.engine.cmd_intake("Feature to signoff US#200")
+        self.assertEqual(intake_res["status"], "READY")
+        self.assertTrue(self.engine.contract_file.exists())
+        self.assertTrue(self.engine.state_file.exists())
+
+        # Also create a mock evidence file and langsmith thread
+        ev_file = self.engine.evidence_dir / "1-G1.md"
+        ev_file.write_text("# Evidence G1\n", encoding="utf-8")
+        thread_file = self.engine.hadrian_dir / "langsmith_thread"
+        thread_file.write_text("thread_12345\n", encoding="utf-8")
+
+        # 3. Call signoff without network operations (push=False, create_pr=False)
+        res = self.engine.cmd_signoff(approver="davide", push=False, create_pr=False)
+        self.assertEqual(res["status"], "COMPLETED")
+        self.assertEqual(res["approver"], "davide")
+        self.assertFalse(self.engine.contract_file.exists())
+        self.assertFalse(self.engine.state_file.exists())
+        self.assertFalse((self.engine.hadrian_dir / "signoff").exists())
+        self.assertFalse(thread_file.exists())
+
+        # Check archived artifacts
+        archive_path = Path(res["archive_dir"])
+        self.assertTrue(archive_path.exists())
+        self.assertTrue((archive_path / "contract.md").exists())
+        self.assertTrue((archive_path / "state.md").exists())
+        self.assertTrue((archive_path / "signoff").exists())
+        self.assertTrue((archive_path / "langsmith_thread").exists())
+        self.assertTrue((archive_path / "1-G1.md").exists())
+
+        signoff_content = (archive_path / "signoff").read_text(encoding="utf-8")
+        self.assertIn("APPROVED by davide", signoff_content)
+        self.assertIn("Feature to signoff US#200", signoff_content)
+
 
 if __name__ == "__main__":
     unittest.main()

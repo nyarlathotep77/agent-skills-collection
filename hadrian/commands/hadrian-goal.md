@@ -16,6 +16,7 @@ If $ARGUMENTS starts with:
 - **`resume`**: Run `python3 ~/.agents/skills/hadrian/scripts/engine.py resume` and continue from the active worktree.
 - **`stop`**: Run `python3 ~/.agents/skills/hadrian/scripts/engine.py stop --reason "$ARGUMENTS"` and halt cleanly.
 - **`taiga`**: Run `python3 ~/.agents/skills/hadrian/scripts/engine.py taiga-sync --action status` to inspect PM tickets.
+- **`signoff`**: Run `python3 ~/.agents/skills/hadrian/scripts/engine.py signoff --approver "$ARGUMENTS"` to push, open PR, and archive state.
 
 ---
 
@@ -53,3 +54,15 @@ If the repository maintains a knowledge base (e.g. OpenWiki):
 3. If Taiga sync is configured, close all child tasks and transition the story to Done:
    `python3 ~/.agents/skills/hadrian/scripts/engine.py taiga-sync --action finish`
 4. Once the Review Gate passes, present the completion report and request user signoff.
+
+### Phase 4: Human Signoff & PR Automation
+When the user approves or signs off (e.g. "Accept", "Signed off", or `/hadrian-goal signoff`):
+1. Execute the automated signoff pipeline:
+   `python3 ~/.agents/skills/hadrian/scripts/engine.py signoff --approver "$USER"`
+2. The engine will:
+   - Create `.hadrian/signoff` (unblocking the git push guard hook).
+   - Push the feature branch to origin from the worktree.
+   - Open the GitHub Pull Request via `gh` CLI.
+   - Archive all active goal artifacts (`contract.md`, `state.md`, `evidence/`, `signoff`, `langsmith_thread`) into `.hadrian/archive/<timestamp>/`.
+   - Preserve `.hadrian/worktrees/` intact until merged.
+3. Report the opened PR URL and completion status to the user.
