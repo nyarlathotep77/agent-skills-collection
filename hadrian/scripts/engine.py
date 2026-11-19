@@ -91,6 +91,14 @@ class HadrianEngine:
                         raw_sha = p.replace("base commit:", "").strip()
                         m_sha = re.match(r"([0-9a-fA-F]{7,40})", raw_sha)
                         data["base_commit"] = m_sha.group(1) if m_sha else raw_sha
+            elif line.startswith("- Ticket:"):
+                data["ticket"] = line.split(":", 1)[1].strip()
+
+        # If ticket was not explicitly set in header, infer from objective
+        if "ticket" not in data and "objective" in data:
+            m_obj = re.search(r"(?:us/|US#|#)\s*(\d+)", data["objective"], re.IGNORECASE)
+            if m_obj:
+                data["ticket"] = f"smartsparks#{m_obj.group(1)}"
         return data
 
     def cmd_status(self) -> dict:
