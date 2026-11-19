@@ -15,6 +15,7 @@
     "generic",
     "dcode",
     "claude-code",
-    "opencode"
+    "opencode",
+    "qwen"
   ]
 }

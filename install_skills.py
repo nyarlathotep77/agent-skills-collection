@@ -118,23 +118,18 @@ def search_skills(skills, query):
 
 
 def opencode_commands_dir(target_dir):
-    """Return the OpenCode commands dir paired with an OpenCode skills target.
-
-    OpenCode v2 discovers skills from `~/.config/opencode/skills` (global) and
-    `.opencode/skills` (project), but command files only from the sibling
-    `commands/` directory. Returns None when the target is not such a layout.
-    """
+    """Return the commands dir paired with an OpenCode or Qwen skills target."""
     t = os.path.abspath(os.path.expanduser(target_dir))
     if os.path.basename(t) != 'skills':
         return None
     parent = os.path.basename(os.path.dirname(t))
-    if parent not in ('opencode', '.opencode'):
+    if parent not in ('opencode', '.opencode', 'qwen', '.qwen'):
         return None
     return os.path.join(os.path.dirname(t), 'commands')
 
 
 def opencode_plugins_dir(target_dir):
-    """Return the OpenCode plugins dir paired with an OpenCode skills target."""
+    """Return the plugins dir paired with an OpenCode skills target."""
     t = os.path.abspath(os.path.expanduser(target_dir))
     if os.path.basename(t) != 'skills':
         return None
@@ -145,12 +140,12 @@ def opencode_plugins_dir(target_dir):
 
 
 def opencode_agents_dir(target_dir):
-    """Return the OpenCode agents dir paired with an OpenCode skills target."""
+    """Return the agents dir paired with an OpenCode or Qwen skills target."""
     t = os.path.abspath(os.path.expanduser(target_dir))
     if os.path.basename(t) != 'skills':
         return None
     parent = os.path.basename(os.path.dirname(t))
-    if parent not in ('opencode', '.opencode'):
+    if parent not in ('opencode', '.opencode', 'qwen', '.qwen'):
         return None
     return os.path.join(os.path.dirname(t), 'agents')
 

@@ -1,4 +1,5 @@
 ---
+name: hadrian-rubric-evaluator
 description: Hadrian Rubric Gate — independent read-only rubric evaluator for L3 goal loops. Scores contract criteria on their anchored scale with cited evidence; never implements and never sees other evaluators' scores.
 mode: subagent
 permission:

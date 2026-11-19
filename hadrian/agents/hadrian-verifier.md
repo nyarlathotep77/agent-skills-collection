@@ -1,4 +1,5 @@
 ---
+name: hadrian-verifier
 description: Hadrian Review Gate — independent read-only verifier for L3 goal loops. Returns per-clause PASS/FAIL with cited evidence and checks the diff does not weaken gates, tests, or assertions.
 mode: subagent
 permission:
