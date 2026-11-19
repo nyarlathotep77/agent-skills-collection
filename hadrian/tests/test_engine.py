@@ -137,6 +137,83 @@ class TestHadrianEngine(unittest.TestCase):
             self.assertEqual(len(res["tasks"]), 1)
             self.assertTrue(res["tasks"][0]["is_closed"])
 
+    def test_resolve_story_from_objective(self):
+        self.assertEqual(
+            self.engine._resolve_story_from_objective("Complete http://localhost:9500/project/smartsparks/us/327"),
+            (327, "smartsparks"),
+        )
+        self.assertEqual(
+            self.engine._resolve_story_from_objective("smartsparks#326"),
+            (326, "smartsparks"),
+        )
+        self.assertEqual(
+            self.engine._resolve_story_from_objective("US#327: P2 Volume and Capacity"),
+            (327, "smartsparks"),
+        )
+        self.assertEqual(
+            self.engine._resolve_story_from_objective("us/328"),
+            (328, "smartsparks"),
+        )
+        self.assertEqual(
+            self.engine._resolve_story_from_objective("Refactor internal engine"),
+            (None, "smartsparks"),
+        )
+
+    def test_intake_with_taiga_story(self):
+        from unittest.mock import patch
+        story_desc = """**As a** Primary 2 pupil **I want to** learn volume **So that** I pass exams.
+
+### Context:
+- Corpus evidence: P2 exam papers.
+
+### Acceptance Criteria:
+- New topic `p2_volume_capacity` in MoeSyllabus.kt.
+- Dedicated generator P2VolumeCapacityGenerator registered in Generators.kt.
+- Question families:
+  1. Reading beaker scales.
+  2. Comparing liquid volumes.
+- Integer constraints: 1 to 50 litres whole numbers.
+"""
+        with patch.object(self.engine, "_taiga_request") as mock_req:
+            mock_req.side_effect = [
+                {"id": 1, "slug": "smartsparks"}, # project
+                {
+                    "id": 99,
+                    "ref": 327,
+                    "subject": "US-24.2: P2 Generator — Volume and Capacity (Litres)",
+                    "description": story_desc,
+                }, # story
+            ]
+            res = self.engine.cmd_intake("Complete http://localhost:9500/project/smartsparks/us/327", budget=7)
+            self.assertEqual(res["status"], "READY")
+            self.assertEqual(res["budget"], 7)
+            self.assertTrue(res["branch"].startswith("hadrian/us327-"))
+
+            contract_text = self.engine.contract_file.read_text(encoding="utf-8")
+            self.assertIn("# Goal Contract — US#327 US-24.2: P2 Generator — Volume and Capacity (Litres)", contract_text)
+            self.assertIn("- **C1** — New topic `p2_volume_capacity` in MoeSyllabus.kt.", contract_text)
+            self.assertIn("- **C2** — Dedicated generator P2VolumeCapacityGenerator registered in Generators.kt.", contract_text)
+            self.assertIn("- **C3** — Question families:", contract_text)
+            self.assertIn("1. Reading beaker scales.", contract_text)
+            self.assertIn("- **C4** — Integer constraints: 1 to 50 litres whole numbers.", contract_text)
+            self.assertIn("Decomposition before work: child sub-tasks of US#327", contract_text)
+            self.assertIn("Fail-closed story completion: US#327 moves to Done", contract_text)
+            self.assertIn("| G1 | assembleDebug --rerun-tasks", contract_text)
+            self.assertIn("| G2 | testDebugUnitTest --rerun", contract_text)
+            self.assertIn("| T1 | Decomposition before work", contract_text)
+            self.assertIn("| T2 | Fail-closed completion", contract_text)
+            self.assertIn("## Rubric (scale 0–4 per criterion)", contract_text)
+            self.assertIn("| R1 |", contract_text)
+            self.assertIn("| R2 |", contract_text)
+            self.assertIn("| R3 |", contract_text)
+            self.assertIn("## Ticket Sync", contract_text)
+            self.assertIn("http://localhost:9500/project/smartsparks/us/327", contract_text)
+
+            state_text = self.engine.state_file.read_text(encoding="utf-8")
+            self.assertIn("# Goal State — US#327 US-24.2: P2 Generator — Volume and Capacity (Litres)", state_text)
+            self.assertIn("- Ticket: smartsparks#327", state_text)
+            self.assertIn("Budget used: 0 / 7 cycles", state_text)
+
 
 if __name__ == "__main__":
     unittest.main()

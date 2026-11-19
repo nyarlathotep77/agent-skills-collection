@@ -111,6 +111,190 @@ class HadrianEngine:
         state["active"] = True
         return state
 
+    def _resolve_story_from_objective(self, objective: str) -> tuple:
+        """Extract story ref and project slug from objective string if present."""
+        # 1. URL pattern: /project/<slug>/us/<ref>
+        url_m = re.search(r"/project/([^/]+)/us/(\d+)", objective)
+        if url_m:
+            return int(url_m.group(2)), url_m.group(1)
+
+        # 2. slug#ref pattern: smartsparks#327 (ignore if prefix is 'us' or 'userstory')
+        slug_ref_m = re.search(r"([a-zA-Z0-9_\-]+)#(\d+)", objective)
+        if slug_ref_m and slug_ref_m.group(1).lower() not in ("us", "userstory", "user_story"):
+            return int(slug_ref_m.group(2)), slug_ref_m.group(1)
+
+        # 3. Ref pattern: US#327, us/327, US-327, US 327
+        ref_m = re.search(r"(?:US|us|#)\s*[/_\-]?\s*(\d+)", objective)
+        if ref_m:
+            return int(ref_m.group(1)), "smartsparks"
+
+        return None, "smartsparks"
+
+    def _fetch_taiga_story(self, story_ref: int, project_slug: str = "smartsparks") -> dict:
+        """Fetch user story details from Taiga API if reachable."""
+        try:
+            project_info = self._taiga_request(f"projects/by_slug?slug={project_slug}")
+            project_id = project_info.get("id")
+            if not project_id:
+                return None
+            us = self._taiga_request(f"userstories/by_ref?ref={story_ref}&project={project_id}")
+            if not us or "id" not in us:
+                return None
+            return {
+                "id": us["id"],
+                "ref": story_ref,
+                "subject": us.get("subject", "").strip(),
+                "description": us.get("description", "").strip(),
+                "project_slug": project_slug,
+            }
+        except Exception:
+            return None
+
+    def _generate_story_contract(
+        self,
+        objective: str,
+        story: dict,
+        budget: int,
+        branch_name: str,
+        spec_path: str,
+        utc_start: str,
+    ) -> str:
+        story_ref = story["ref"]
+        subject = story.get("subject", "").strip()
+        desc = story.get("description", "").strip()
+        project_slug = story.get("project_slug", "smartsparks")
+
+        # Parse sections from description
+        context_match = re.search(r"###\s*Context:?\s*\n(.*?)(\n###|\Z)", desc, re.DOTALL | re.IGNORECASE)
+        context_text = context_match.group(1).strip() if context_match else ""
+
+        narrative_match = re.match(r"^(.*?)(\n###|\Z)", desc, re.DOTALL)
+        narrative_text = narrative_match.group(1).strip() if narrative_match else ""
+
+        ac_match = re.search(r"###\s*Acceptance Criteria:?\s*\n(.*?)(\n###|\Z)", desc, re.DOTALL | re.IGNORECASE)
+        if not ac_match:
+            ac_match = re.search(r"Acceptance Criteria:?\s*\n(.*?)(\n###|\Z)", desc, re.DOTALL | re.IGNORECASE)
+
+        ac_items = []
+        if ac_match:
+            ac_text = ac_match.group(1).strip()
+            current_item = []
+            for line in ac_text.splitlines():
+                is_bullet = bool(re.match(r"^\s*[-*]\s+", line) and not (line.startswith("    ") or line.startswith("\t") or line.startswith("  ")))
+                is_num = bool(re.match(r"^\s*\d+\.\s+", line) and not (line.startswith("    ") or line.startswith("\t") or line.startswith("  ")))
+                if is_bullet:
+                    if current_item:
+                        ac_items.append("\n".join(current_item).strip())
+                        current_item = []
+                    current_item.append(re.sub(r"^\s*[-*]\s+", "", line))
+                elif is_num:
+                    if current_item:
+                        ac_items.append("\n".join(current_item).strip())
+                        current_item = []
+                    current_item.append(re.sub(r"^\s*\d+\.\s+", "", line))
+                elif current_item:
+                    current_item.append(line)
+            if current_item:
+                ac_items.append("\n".join(current_item).strip())
+
+        # Build DoD Clauses (C1..Cn)
+        clauses = []
+        for item in ac_items:
+            clauses.append(item)
+
+        # Standard engineering clauses
+        has_build = any("assembleDebug" in c or "compilation" in c for c in clauses)
+        if not has_build:
+            clauses.append("Clean build with zero compilation warnings (`./gradlew assembleDebug`) and all unit tests pass (`./gradlew testDebugUnitTest`); diff introduces no network calls, trackers, or cloud endpoints.")
+
+        clauses.append("OpenWiki KB update pass run on the branch (AGENTS.md §9) so `openwiki/` reflects changes before merge; changed pages committed with the code.")
+        clauses.append(f"Decomposition before work: child sub-tasks of US#{story_ref} exist in Taiga, assigned to acting account, BEFORE any implementation step (gate T1).")
+        clauses.append("Evidence-backed transitions: each sub-task moves to in-progress on first real work step; closes only with captured verification evidence plus an outcome comment.")
+        clauses.append(f"Fail-closed story completion: US#{story_ref} moves to Done only after re-read confirms every child task is closed (gate T2).")
+
+        dod_lines = []
+        for idx, c in enumerate(clauses, start=1):
+            lines = c.splitlines()
+            first_line = lines[0]
+            rest = lines[1:]
+            if rest:
+                indented_rest = "\n".join("  " + r for r in rest)
+                dod_lines.append(f"- **C{idx}** — {first_line}\n{indented_rest}")
+            else:
+                dod_lines.append(f"- **C{idx}** — {first_line}")
+
+        dod_block = "\n".join(dod_lines)
+
+        # Build Rubric Table
+        rubric_rows = []
+        for idx, c in enumerate(clauses, start=1):
+            lines = c.splitlines()
+            first_line = lines[0]
+            if first_line.rstrip().endswith(":") and len(lines) > 1:
+                c_summary = f"{first_line.rstrip(':')} ({len(lines)-1} sub-items)"
+            else:
+                c_summary = first_line
+            c_clean = re.sub(r"[`*]", "", c_summary).strip()
+            if len(c_clean) > 80:
+                c_clean = c_clean[:77] + "..."
+            source = "contract" if idx >= len(clauses) - 2 else "derived"
+            anchor_desc = f"Meets C{idx} ({c_clean}) verified by captured evidence"
+            rubric_rows.append(f"| R{idx} | C{idx}: {c_clean} | {source} | {anchor_desc} |")
+
+        rubric_block = "\n".join(rubric_rows)
+
+        ticket_url = f"http://localhost:9500/project/{project_slug}/us/{story_ref}"
+        ticket_str = f"{project_slug}#{story_ref} — {ticket_url} (\"{subject}\")"
+
+        context_section = ""
+        if narrative_text or context_text:
+            context_parts = []
+            if narrative_text:
+                context_parts.append(narrative_text)
+            if context_text:
+                context_parts.append(f"### Context\n{context_text}")
+            context_section = f"\n## Story Context\n\n" + "\n\n".join(context_parts) + "\n"
+
+        return f"""# Goal Contract — US#{story_ref} {subject}
+
+- Started: {utc_start}
+- Status: ACTIVE (Phase 1)
+- Budget: {budget} cycles
+- Work branch: {branch_name}
+- Spec reference: {spec_path or 'none'}
+- Knowledge base sources: AGENTS.md §1, §4, §7, §8, §9
+- Ticket: {ticket_str}
+{context_section}
+## Definition of Done
+
+{dod_block}
+
+## Quality Gates
+
+| # | Gate | Source | Command | Status |
+|---|------|--------|---------|--------|
+| G1 | assembleDebug --rerun-tasks (zero compiler warnings) | kb:AGENTS.md §8 | `./gradlew assembleDebug --rerun-tasks` | pending |
+| G2 | testDebugUnitTest --rerun (100% green unit suites) | kb:AGENTS.md §7/§8 | `./gradlew testDebugUnitTest --rerun` | pending |
+| T1 | Decomposition before work — child tasks exist under US#{story_ref}, assigned to acting account | contract | taiga-bridge or taiga-sync status check | pending |
+| T2 | Fail-closed completion — every child task Closed and story in Done, confirmed by post-write re-read at stop | contract | taiga-bridge or taiga-sync status check | pending |
+
+## Rubric (scale 0–4 per criterion)
+
+Anchors: **0** = absent or contradicts the clause · **1** = attempted with major gaps · **2** = present but incomplete or evidence too weak to verify · **3** = meets the clause as written, verified by captured evidence (anchor) · **4** = exceeds — additional verification beyond what the clause requires.
+Threshold: mean ≥ 3.0 and no criterion below its anchor (3). A clause that FAILs its gate cannot count as complete regardless of rubric points; NOT-RUN gates block completion.
+
+| # | Criterion (clause) | Source | Anchor descriptor (3) |
+|---|--------------------|--------|-----------------------|
+{rubric_block}
+
+## Ticket Sync
+
+- Ticket: {project_slug}#{story_ref}
+- URL: {ticket_url}
+- PM Account: kadath.copilot (id 6)
+- Status roles: initial=New, in-progress="In progress", done=Done, tasks close as Closed
+"""
+
     def cmd_intake(self, objective: str, budget: int = 10, spec_path: str = None) -> dict:
         """Phase 0: Scaffold contract.md, state.md, and create worktree."""
         self.ensure_hadrian_dirs()
@@ -127,11 +311,21 @@ class HadrianEngine:
                 for ef in self.evidence_dir.glob("*.md"):
                     ef.rename(archive_dir / ef.name)
 
-        # Derive slug and ticket if present
-        ticket_match = re.search(r"(?:US|us|#)\s*(\d+)", objective)
-        ticket_ref = f"smartsparks#{ticket_match.group(1)}" if ticket_match else "none"
-        slug_raw = re.sub(r"[^a-zA-Z0-9]+", "-", objective.lower()).strip("-")
-        slug = slug_raw[:35] if slug_raw else "goal"
+        # Attempt to resolve story from objective and fetch from Taiga
+        story_ref, project_slug = self._resolve_story_from_objective(objective)
+        story = self._fetch_taiga_story(story_ref, project_slug) if story_ref else None
+
+        if story:
+            ticket_ref = f"{project_slug}#{story['ref']}"
+            clean_subj = re.sub(r"^US[\-\s0-9\.]*:\s*", "", story.get("subject", ""), flags=re.IGNORECASE)
+            clean_subj = re.sub(r"[^a-zA-Z0-9]+", "-", clean_subj.lower()).strip("-")
+            slug = f"us{story['ref']}-{clean_subj}"[:35].rstrip("-")
+        else:
+            ticket_match = re.search(r"(?:US|us|#)\s*(\d+)", objective)
+            ticket_ref = f"smartsparks#{ticket_match.group(1)}" if ticket_match else "none"
+            slug_raw = re.sub(r"[^a-zA-Z0-9]+", "-", objective.lower()).strip("-")
+            slug = slug_raw[:35] if slug_raw else "goal"
+
         branch_name = f"hadrian/{slug}"
         worktree_path = (self.worktrees_dir / slug).resolve()
 
@@ -160,7 +354,17 @@ class HadrianEngine:
         utc_start = get_utc_now()
 
         # Write contract.md
-        contract_content = f"""# Goal Contract — {objective}
+        if story:
+            contract_content = self._generate_story_contract(
+                objective=objective,
+                story=story,
+                budget=budget,
+                branch_name=branch_name,
+                spec_path=spec_path,
+                utc_start=utc_start,
+            )
+        else:
+            contract_content = f"""# Goal Contract — {objective}
 
 - Started: {utc_start}
 - Status: ACTIVE (Phase 1)
@@ -189,7 +393,8 @@ class HadrianEngine:
         contract_md5 = compute_md5(self.contract_file)
 
         # Write state.md
-        state_content = f"""# Goal State — {objective}
+        state_title = f"US#{story['ref']} {story.get('subject', '')}" if story else objective
+        state_content = f"""# Goal State — {state_title}
 
 - Objective: {objective}
 - Contract md5: {contract_md5} (frozen at intake {utc_start})
@@ -335,6 +540,7 @@ class HadrianEngine:
                 return json.loads(resp_text) if resp_text else {}
         except urllib.error.HTTPError as e:
             err_body = e.read().decode("utf-8") if e.fp else ""
+            e.close()
             raise RuntimeError(f"Taiga HTTP {e.code} on {endpoint}: {err_body}")
 
     def cmd_taiga_sync(self, action: str = "status", story_ref: int = None, project_slug: str = "smartsparks", status_name: str = None, comment: str = None) -> dict:
