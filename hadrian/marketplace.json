@@ -6,7 +6,7 @@
     "hadrian-goal": "commands/hadrian-goal.md"
   },
   "plugins": {
-    "opencode": "plugins/hadrian-plugin.js",
+    "opencode": "plugins/hadrian-guard.js",
     "claude-code": "hooks/guard.sh"
   },
   "name": "hadrian",
