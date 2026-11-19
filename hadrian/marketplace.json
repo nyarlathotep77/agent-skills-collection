@@ -6,11 +6,11 @@
     "hadrian-goal": "commands/hadrian-goal.md"
   },
   "plugins": {
-    "opencode": "plugins/hadrian-guard.js",
+    "opencode": "plugins/hadrian-plugin.js",
     "claude-code": "hooks/guard.sh"
   },
   "name": "hadrian",
-  "version": "0.23.0",
+  "version": "0.24.0",
   "harnesses": [
     "generic",
     "dcode",
