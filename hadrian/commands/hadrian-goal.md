@@ -1,99 +1,68 @@
 ---
-description: Drive a bounded objective to verified completion with the Hadrian L3 goal loop — contract intake, quality gates, cycle budget, human acceptance. Usage: /hadrian-goal <objective> [(max N cycles)] | /hadrian-goal status | /hadrian-goal pause | /hadrian-goal resume | /hadrian-goal stop | /hadrian-goal amend <changes>
+description: Execute an L3 goal loop for a bounded objective (contract intake, automated gates, verified completion)
+agent: build
 ---
-
 # Hadrian L3 Goal Execution
 
 Objective / Command: $ARGUMENTS
 
-## Invocation rules (apply before anything else)
+You are the implementation engineer executing this Hadrian goal. All mechanics (contract intake, worktree isolation, quality gate verification, evidence generation, verdict recording, and status reporting) are handled deterministically by the Hadrian Engine:
+`python3 ~/.agents/skills/hadrian/scripts/engine.py <subcommand>`
 
-1. **Start immediately.** On a new objective, begin Phase 0 (contract intake) at once — no confirmation prompt, no planning questions. The user can interrupt at any time; any user message preempts the loop and is handled first.
-2. **Resolve the cycle budget from $ARGUMENTS:**
-   - If it contains `(max N cycles)` with a positive integer N → budget = N.
-   - Otherwise (clause absent, or N missing / non-integer / ≤ 0) → budget = 10 (default).
-   - Record the resolved value in the contract header as `Budget: <N> cycles`.
-3. **Spec reference.** If $ARGUMENTS names a spec file that exists in the repo, read it; its Contract / Definition of Done section becomes the baseline for DoD clauses and quality gates (gate source: `spec`).
-
-## Subcommand dispatch (check first word of arguments)
-
-Subcommands never start a new goal and never trigger archiving; they operate strictly on an existing active goal. `.hadrian/contract.md` + `.hadrian/state.md` are the single source of truth for resuming, pausing, amending, or inspecting an active goal across sessions — subcommands rely only on those files, never on session memory. All subcommands first validate every `VERDICT` record in state against references/verdict-contract.md before acting — malformed records are treated as NOT-RUN for their id, listed explicitly in the output or report, and block completion; they are never guessed or coerced into a pass.
-
-- **`status`**: Read and summarize `.hadrian/state.md` (objective, budget used vs total, last cycle's gates/verdict, next step, waivers) and exit. Do not start or continue the loop. If no state file exists, say so and exit.
-- **`pause`**: Halt the loop cleanly without escalating. Append a `PAUSE` record with UTC timestamp to `.hadrian/state.md` and report current progress and remaining budget. Do not archive; execution can be resumed later with `resume`.
-- **`resume`**: Read `.hadrian/contract.md` and `.hadrian/state.md`, verify they belong to the same active (unsigned) goal, run the budget check, then continue the cycle loop from the last state entry. Do not re-run the capability probe — its result is already recorded in the state header (once per goal). If either file is missing or a signoff exists, report that there is nothing to resume and exit.
-- **`amend <changes>`**: Apply human-directed amendments to `.hadrian/contract.md` (e.g., budget increase, modified DoD clause, added constraint) and record `AMENDMENT: by=<user> at=<UTC timestamp> changes=<...>` into `.hadrian/state.md`. Do not archive.
-- **`stop`**: Halt execution immediately. Write an escalation report (format: references/escalation-report.md) with reason `stopped by user`, append it to `.hadrian/state.md`, and report what remains. Do not run further cycles.
+## Subcommand Dispatch
+If $ARGUMENTS starts with:
+- **`status`**: Run `python3 ~/.agents/skills/hadrian/scripts/engine.py status` and report the returned JSON status.
+- **`pause`**: Run `python3 ~/.agents/skills/hadrian/scripts/engine.py pause --reason "$ARGUMENTS"` and halt cleanly.
+- **`resume`**: Run `python3 ~/.agents/skills/hadrian/scripts/engine.py resume` and continue from the active worktree.
+- **`stop`**: Run `python3 ~/.agents/skills/hadrian/scripts/engine.py stop --reason "$ARGUMENTS"` and halt cleanly.
+- **`taiga`**: Run `python3 ~/.agents/skills/hadrian/scripts/engine.py taiga-sync --action status` to inspect PM tickets.
+- **`signoff`**: Run `python3 ~/.agents/skills/hadrian/scripts/engine.py signoff --approver "$ARGUMENTS"` to push, open PR, and archive state.
 
 ---
 
-## Autonomous goal protocol (new objectives)
+## Autonomous Goal Protocol (New Objective)
 
-### 1. Phase 0 — Contract intake
+### Phase 0: Intake & Worktree Setup
+If no active goal exists in `.hadrian/`:
+1. Initialize the goal harness:
+   `python3 ~/.agents/skills/hadrian/scripts/engine.py intake "$ARGUMENTS"`
+2. Read the returned JSON for your assigned `worktree` path and dedicated `branch`.
+3. **Hard Rule (Worktree Isolation):** All file edits and implementations must take place inside `.hadrian/worktrees/<slug>/`. Never modify files in the root checkout.
+4. If a ticket ref is associated, verify ownership and decomposition:
+   `python3 ~/.agents/skills/hadrian/scripts/engine.py taiga-sync --action status`
 
-1. **Immediate clean slate:** when starting a new goal (any invocation that is not an existing-goal subcommand), ensure a clean slate in `.hadrian/`. Completed goals archive their artifacts upon completion; if any residual active goal state is found in `.hadrian/` (`contract.md`, `state.md`, `evidence/`, `signoff`, or `langsmith_thread` already exists from an aborted or unarchived run): immediately move all existing active goal artifacts (`contract.md`, `state.md`, `evidence/`, `signoff`, `langsmith_thread`) to `.hadrian/archive/<timestamp>/` (leaving `archive/` and `worktrees/` intact) and remove any stale `.hadrian/signoff`. Every new goal starts with a clean slate and fresh artifacts, initializing a distinct tracing thread/session for the harness (e.g. LangSmith) without state pollution from prior runs.
-2. Keep `.hadrian/` out of version control: it is per-repo runtime state, never shipped code. Ensure the repo's `.gitignore` contains `.hadrian/` (add it if missing); if `.hadrian/*` files are already tracked, untrack them with `git rm -r --cached .hadrian` as part of the first work-branch commit — never rewrite history.
-3. Discover Quality Gates in this fixed order — later steps only fill gaps left by earlier ones (record each gate's source as `spec`, `kb:<file>`, `inferred`, or `derived`):
-   - Spec reference → its Contract/DoD section (source `spec`) — the baseline when present.
-   - Repository KB (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`) — union of their quality/DoD/verification requirements; conflicts between KB files are flagged in `.hadrian/state.md` and asked to the human, never resolved silently (source `kb:<file>`).
-   - Project toolchain tasks (e.g., `./gradlew test`, `npm test`, `cargo test`, `pytest`) — only where the KB is silent; mark INFERRED (source `inferred`).
-   - Verifiable clauses derived from the objective (source `derived`).
-4. Create `.hadrian/contract.md` immediately:
-   - Header: Started timestamp, Budget (<resolved N> cycles), Spec/KB references, Ticket (`project_slug#ref or URL | none`).
-   - Numbered Definition of Done (DoD) clauses.
-    - Quality Gates table (`| # | Gate | Source | Command | Status |`), every row's Source one of `spec`, `kb:<file>`, `inferred`, `derived`.
-   - Rubric section derived from the DoD clauses — one or more criteria per clause with scale + anchored descriptors; every criterion records its source (`spec`, `kb:<file>`, `inferred`, `derived`) exactly like gates; frozen after intake, amendments human-only (references/rubric-gate.md).
-   - **Ticket Sync (mandatory when a PM ticket is tied):** per templates/contract.md — PM tool, story ref, acting account (`pm_account`), status roles resolved from project configuration by role; mandatory DoD clauses + gates T1/T2 (source `contract`) for decomposition-before-work and fail-closed completion. No ticket → record `Ticket: none`.
-   - Constraints and Verification Commands.
-5. Initialize `.hadrian/state.md` with:
-     `Capability probe: verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced> rubric=<independent|in-process>`
-6. Show the written contract to the user BEFORE Phase 1 begins — presentation precedes any work; do not wait for confirmation before starting Phase 1.
+### Phase 1: Implementation & Quality Gates
+Execute focused cycles:
+1. **Implement:** Write or modify the required source code and unit tests inside your assigned worktree.
+2. **Execute Gates:** Run the deterministic gate runner:
+   `python3 ~/.agents/skills/hadrian/scripts/engine.py run-gates --cycle <cycle_number>`
+   - The engine automatically runs Gradle builds, enforces zero compiler warnings, parses test suites, writes `.hadrian/evidence/*.md` artifacts, and records machine-verifiable `VERDICT` lines to `.hadrian/state.md`.
+   - **If gates FAIL:** Inspect the failing test names and compiler output returned by `run-gates`. Make the necessary fixes and re-run. Repeat until `status: "PASS"`.
+3. **Commit:** When gates pass cleanly, commit your changes:
+   `python3 ~/.agents/skills/hadrian/scripts/engine.py commit feat "<concise description of feature>"`
 
-### 2. Phase 1 & 2 — Cycle loop (bias for direct action)
+### Phase 2: Knowledge Base & Documentation (if applicable)
+If the repository maintains a knowledge base (e.g. OpenWiki):
+1. Execute the knowledge base update pass on your work branch.
+2. Re-verify gates with `run-gates` and commit docs:
+   `python3 ~/.agents/skills/hadrian/scripts/engine.py commit docs "update KB for <objective>"`
 
-**Capability probe (Phase 1, once per goal):** before the first cycle, run the capability probe exactly once per goal (references/capability-probe.md) and record the results in the `.hadrian/state.md` header: `verifier=<independent|in-process> loop-engine=<auto-continue|self-prompted> freeze=<hard|prompt-enforced> rubric=<independent|in-process>`. Every missing capability maps to a documented degraded mode — adapt, don't fail. Degraded modes are recorded, not hidden: they appear in every completion/escalation report so the human knows which guarantees were active.
+### Phase 3: Review Gate & Ticket Completion
+1. Retrieve the git diff against the base commit:
+   `python3 ~/.agents/skills/hadrian/scripts/engine.py review-diff`
+2. Invoke the independent reviewer subagent `@hadrian-verifier` with the contract and diff to verify Definition of Done clauses and ensure no assertions/tests were weakened.
+3. If Taiga sync is configured, close all child tasks and transition the story to Done:
+   `python3 ~/.agents/skills/hadrian/scripts/engine.py taiga-sync --action finish`
+4. Once the Review Gate passes, present the completion report and request user signoff.
 
-**Budget check first:** before starting each cycle, count completed cycles in `.hadrian/state.md`. If the budget is exhausted → stop immediately and write an escalation report with reason `budget exhausted` (format: references/escalation-report.md). Never silently continue past the budget; only a human amendment recorded in state extends it.
-
-**Worktree & branch discipline:** before applying any change, record the current git branch in `.hadrian/state.md`. Never apply changes directly to the repository's default (main/master) branch — first create a dedicated work branch for the goal (e.g., `hadrian/<goal-slug>`) and check it out in a dedicated worktree: from the repo root run `git worktree add .hadrian/worktrees/<goal-slug> -b hadrian/<goal-slug>` (on resume, if the branch already exists use `git worktree add .hadrian/worktrees/<goal-slug> <branch>` without `-b`), and record in the state header the worktree path + base commit (`Worktree: <absolute path> | branch: ... | base commit: <sha>`). All cycles operate inside that worktree (edits and gate commands run there); the main checkout's working tree is never modified by goal work — `.hadrian/worktrees/` sits under the gitignored `.hadrian/`, so `git status` in the main checkout stays clean. If worktrees are unavailable (not a git repository, or `git worktree add` fails), degrade to the existing single-checkout branch discipline and record the degraded mode in the state header (`Worktree: degraded — <reason>`) — adapt, don't fail.
-
-**Ticket sync (contract content — mandatory when a PM ticket is tied):** when the objective is tied to a project-management ticket (e.g. "Execute <PM> US#<n>", or an explicit URL / slug+ref), ticket management is part of the contract written in Phase 0 — story ref, acting account (`pm_account`), status roles resolved from project configuration by role, and DoD clauses + gates T1/T2 (source `contract`). Mirror reality into that tool per references/taiga-sync.md: decompose the approved plan into child sub-tasks of the story **before work starts** (idempotently: reuse and report existing, never duplicate); gate T1 verifies by re-reading before the first cycle performs real work — no implementation step happens before it passes. Move each sub-task to in-progress on its first real work step with a comment stating what was started; move it to done only with captured verification evidence (fail-closed) plus an outcome comment. The main agent moves the containing story — it stays initial until the first pickup, then In Progress (comment names the picked-up sub-task), and Done only after re-reading confirms every child task is closed; gate T2 verifies this fail-closed at stop. Statuses come from project configuration by role; never hard-coded or invented. A worker/sub-agent moves only its own assigned task. Before implementing any ticket, resolve the acting PM identity (Taiga: `whoami_tool`) and ensure every user story and sub-task the goal implements is assigned to that account — claim unassigned or foreign-assigned tickets first (handover comment names the previous assignee); new sub-tasks are created already assigned; a failed claim blocks implementation of that ticket (fail-closed). The PM tool is pluggable; Taiga (taiga_bridge MCP tools) is the reference implementation. Goals without a ticket record `Ticket: none` in the contract header and skip this entirely.
-
-Execute tightly focused cycles until all DoD clauses PASS or a stop condition hits:
-
-1. **Focus**: pick the smallest concrete code change that advances a DoD clause.
-2. **Implement**: edit or create files directly with tools.
-3. **Execute gates**: run every gate command in the contract via bash (e.g., `./gradlew test`, syntax checks) and capture real terminal output plus exit code. Before recording each verdict, write that gate's full evidence (command, exit code, relevant output excerpt) to `.hadrian/evidence/<cycle>-<G<n>>.{md,json}` and verify it was written — a write failure makes the gate NOT-RUN, and a PASS/FAIL without its existing artifact file is invalid. PASS is only granted with captured output evidence — one line of it plus the artifact path goes into state.md (references/evidence-artifacts.md). A verification tool error is classified **transient vs fatal** before any verdict (references/evidence-artifacts.md): **fatal** — assertion/test failure, compile error, or non-zero exit from a check that ran to completion = FAIL for that gate and the cycle immediately, never retried; **transient** — tool crash, timeout, network failure, missing binary mid-run (the check never completed) may be retried up to N times within the same cycle (default 1) without consuming additional cycle budget, every retry recorded in state.md as a `RETRY` line with timestamp + reason; exhausted retries leave the gate NOT-RUN/FAIL per existing rules. Never interpreted as "not applicable"; no PASS without a clean run to completion. A gate whose precondition is missing (no emulator, no service) = NOT-RUN, which blocks completion until a human waives it.
-4. **Review Gate**: [independent] invoke the verifier subagent (`hadrian-verifier` or an equivalent read-only reviewer) with contract + diff + gate outputs → per-clause PASS/FAIL with cited evidence; it also runs the gate-weakening check below. [degraded] run an in-process adversarial pass against the same checklist — re-read the diff clause by clause, actively try to falsify each PASS, and produce the same per-clause PASS/FAIL with cited evidence. The weakening check fails the cycle on any single hit:
-   1. A test or assertion edited to force a pass (weakened expectation, deleted case, skipped test)
-   2. A quality-gate threshold lowered or a required check removed
-   3. Any edit to quality/DoD sections of `AGENTS.md`, `CLAUDE.md`, or `GEMINI.md`
-   4. Any edit to `.hadrian/contract.md`
-
-   No gate, test, or assertion may be weakened to force a pass; amendments are proposed in reports and applied by a human as a normal commit (canonical checklist: references/gates.md).
-5. **Rubric Gate**: after this cycle's Quality + Review Gates, [independent] invoke the rubric-evaluator subagent with contract + captured evidence → per-criterion score on its anchored scale (0–4) with cited evidence; it never sees other evaluators' scores and never implements. [degraded] run an in-process scoring pass against the same frozen rubric. The rubric runs at minimum on stop conditions (completion/escalation) and whenever the remaining budget is low, and it never overrides gates — a clause that FAILs its gate cannot count as complete regardless of rubric points, and NOT-RUN still blocks completion (references/rubric-gate.md).
-6. **Record state**: append a cycle entry to `.hadrian/state.md`: n | action | gates | review verdicts | next step — every gate, review-clause, weakening-check (CW), and rubric-criterion result written as a machine-verifiable `VERDICT` record per references/verdict-contract.md, each with evidence captured in this cycle; prose-only verdicts are invalid by definition. When the Rubric Gate runs its records carry score=<0..4> (clause score = minimum of its criteria). The state file is the single source of truth for resuming an active goal across sessions; nothing may be recorded only in session memory.
-7. **Iterate**: proceed immediately to the next cycle without stalling or asking unnecessary questions unless blocked by an unresolvable error — and only while budget remains (see budget check above).
-
-### 3. Execution guardrails (strict anti-entropy)
-
-- **Direct code execution:** never inspect OS processes (`ps`), search for other agents, or stall on existing working-tree diffs. Execute the required changes directly on the codebase.
-- **Evidence over claims:** every PASS must cite captured test/build command output.
-- **Immutable contract:** never edit `.hadrian/contract.md` after intake.
-- **Worktree & branch discipline:** record the current git branch in `.hadrian/state.md` before the first change. Never apply changes directly to the repository's default (main/master) branch — create a dedicated work branch for the goal (e.g., `hadrian/<goal-slug>`) checked out in a dedicated worktree (`git worktree add .hadrian/worktrees/<goal-slug> -b hadrian/<goal-slug>`; record path + base commit in the state header) before applying any change. All cycles operate inside that worktree (edits and gate commands run there); the main checkout's working tree is never modified by goal work. If worktrees are unavailable, degrade to single-checkout branch discipline and record `Worktree: degraded — <reason>` in the state header — adapt, don't fail.
-- **No silent worktree removal:** on signoff/stop with unmerged work, leave the goal's worktree and branch intact and report their path + branch via the Worktree line of the completion/escalation report; remove them only after the branch has been merged or when the user explicitly directs removal — never silently deleted.
-- **Runtime state is never version-controlled:** keep `.hadrian/` in the repo's `.gitignore`; untrack any already-tracked files with `git rm -r --cached .hadrian` on the first work-branch commit. Never rewrite history to purge it.
-- **No git push:** do not run `git push` without `.hadrian/signoff`.
-- **Post-completion archival:** soon after completing the goal (after signoff and PR/MR creation), archive all active goal artifacts (`contract.md`, `state.md`, `evidence/`, `signoff`, `langsmith_thread`) by moving them (`mv`, never `cp`) to `.hadrian/archive/<timestamp>/` (leaving `archive/` and `worktrees/` intact). In particular, `langsmith_thread` must be archived so that subsequent goals do not inherit or pollute the previous goal's LangSmith thread.
-- **State persistence is required:** if writing to `.hadrian/state.md` becomes impossible, stop the loop and report instead of running — persistence is never silently degraded.
-
-## Stop conditions & reports
-
-- All DoD clauses PASS + Review Gate clean + Rubric Gate meets its threshold (no clause below its anchor; mean ≥ contract threshold) → completion report (format: references/escalation-report.md); acceptance is human-owned — present the diff summary + evidence table + rubric scorecard and create `.hadrian/signoff` **only** on explicit in-session user approval (never self-assigned success). After signoff, coding-task goals end in an opened PR/MR: push the feature branch, open a pull request (GitHub via `gh`) or merge request (GitLab), record its URL in the completion report; goals without code changes are exempt. Both completion and escalation reports list every `.hadrian/evidence/<cycle>-<G<n>>.{md,json}` path produced for the goal so a human can audit them or attach them to the PR/MR (references/escalation-report.md, references/evidence-artifacts.md). Stopping with unmerged work leaves the goal's worktree and branch intact — both report templates carry a Worktree line reporting their path + state; removal happens only after merge or explicit user direction, never silently. Soon after completing the goal (signoff granted, PR/MR created if applicable), archive all active goal artifacts (`contract.md`, `state.md`, `evidence/`, `signoff`, `langsmith_thread`) by moving them (`mv`, never `cp`) to `.hadrian/archive/<timestamp>/` (leaving `archive/` and `worktrees/` intact). Moving `langsmith_thread` along with the contract, state, and evidence files ensures that `.hadrian/` is left clean and that subsequent goals will not reuse the previous goal's tracing thread.
-- Ticket-tied goals additionally require gate T2 PASS for completion (fail-closed re-read: every child task closed, story in done-role status) — an open child blocks completion exactly like a failed gate. They add a ticket-sync section to every completion/escalation report: sub-tasks created or reused (refs), every transition with its triggering activity, the story's final status, and any open children. On escalation or budget exhaustion the story is left in its current state — no speculative transitions.
-- NOT-RUN gates block completion (a malformed verdict record counts as NOT-RUN for its id — references/verdict-contract.md): list them in the report and require an explicit human waiver recorded in `.hadrian/state.md` as `WAIVER: gate=<name> by=<user> at=<UTC timestamp> reason=<...>`. The agent never self-waives.
-- Budget exhausted / same failure twice in a row / blocker → escalation report (objective, cycles used vs budget, per-clause status with evidence refs, every `.hadrian/evidence/` artifact path, what is blocked, recommended next step). An escalation is a valid outcome — hand off, don't grind.
-
-## Skill reference
-
-Full protocol details live in the Hadrian skill that ships alongside this command. Load it by ID (`hadrian`) through your harness's skill mechanism (OpenCode: the `skill` tool; Claude Code: its skills directory). When working from the plugin source tree, the files are at `../SKILL.md` (phases), `../references/gates.md`, `../references/rubric-gate.md`, `../references/verdict-contract.md`, `../references/capability-probe.md`, `../references/escalation-report.md`, `../references/taiga-sync.md`, templates in `../templates/`.
+### Phase 4: Human Signoff & PR Automation
+When the user approves or signs off (e.g. "Accept", "Signed off", or `/hadrian-goal signoff`):
+1. Execute the automated signoff pipeline:
+   `python3 ~/.agents/skills/hadrian/scripts/engine.py signoff --approver "$USER"`
+2. The engine will:
+   - Create `.hadrian/signoff` (unblocking the git push guard hook).
+   - Push the feature branch to origin from the worktree.
+   - Open the GitHub Pull Request via `gh` CLI.
+   - Archive all active goal artifacts (`contract.md`, `state.md`, `evidence/`, `signoff`, `langsmith_thread`) into `.hadrian/archive/<timestamp>/`.
+   - Preserve `.hadrian/worktrees/` intact until merged.
+3. Report the opened PR URL and completion status to the user.

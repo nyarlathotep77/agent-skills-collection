@@ -118,19 +118,36 @@ def search_skills(skills, query):
 
 
 def opencode_commands_dir(target_dir):
-    """Return the OpenCode commands dir paired with an OpenCode skills target.
+    """Return the commands dir paired with an OpenCode or Qwen skills target."""
+    t = os.path.abspath(os.path.expanduser(target_dir))
+    if os.path.basename(t) != 'skills':
+        return None
+    parent = os.path.basename(os.path.dirname(t))
+    if parent not in ('opencode', '.opencode', 'qwen', '.qwen'):
+        return None
+    return os.path.join(os.path.dirname(t), 'commands')
 
-    OpenCode v2 discovers skills from `~/.config/opencode/skills` (global) and
-    `.opencode/skills` (project), but command files only from the sibling
-    `commands/` directory. Returns None when the target is not such a layout.
-    """
+
+def opencode_plugins_dir(target_dir):
+    """Return the plugins dir paired with an OpenCode skills target."""
     t = os.path.abspath(os.path.expanduser(target_dir))
     if os.path.basename(t) != 'skills':
         return None
     parent = os.path.basename(os.path.dirname(t))
     if parent not in ('opencode', '.opencode'):
         return None
-    return os.path.join(os.path.dirname(t), 'commands')
+    return os.path.join(os.path.dirname(t), 'plugins')
+
+
+def opencode_agents_dir(target_dir):
+    """Return the agents dir paired with an OpenCode or Qwen skills target."""
+    t = os.path.abspath(os.path.expanduser(target_dir))
+    if os.path.basename(t) != 'skills':
+        return None
+    parent = os.path.basename(os.path.dirname(t))
+    if parent not in ('opencode', '.opencode', 'qwen', '.qwen'):
+        return None
+    return os.path.join(os.path.dirname(t), 'agents')
 
 
 def install_skill(skill_id, skills, target_dir):
@@ -139,11 +156,12 @@ def install_skill(skill_id, skills, target_dir):
         print(f"Error: Skill '{skill_id}' not found.")
         return 1
     dest = os.path.join(target_dir, skill_id)
-    try:
-        shutil.copytree(skill['source'], dest, dirs_exist_ok=True)
-    except Exception as e:
-        print(f"Error during installation: {e}")
-        return 1
+    if os.path.realpath(skill['source']) != os.path.realpath(dest):
+        try:
+            shutil.copytree(skill['source'], dest, dirs_exist_ok=True)
+        except Exception as e:
+            print(f"Error during installation: {e}")
+            return 1
     print(f"Successfully installed '{skill['id']}' to {dest}")
 
     # OpenCode v2 does not discover commands inside a skill directory; copy the
@@ -158,6 +176,32 @@ def install_skill(skill_id, skills, target_dir):
             shutil.copyfile(os.path.join(cmds_src, fname),
                             os.path.join(cmds_dir, fname))
             print(f"Installed command /{os.path.splitext(fname)[0]} to {cmds_dir}/{fname}")
+
+    # OpenCode v2 does not discover plugins inside a skill directory; copy the
+    # plugin files into the paired plugins dir so they run automatically.
+    plugins_src = os.path.join(skill['source'], 'plugins')
+    plugins_dir = opencode_plugins_dir(target_dir)
+    if plugins_dir and os.path.isdir(plugins_src):
+        os.makedirs(plugins_dir, exist_ok=True)
+        for fname in sorted(os.listdir(plugins_src)):
+            if fname.startswith('.') or not (fname.endswith('.js') or fname.endswith('.ts')):
+                continue
+            shutil.copyfile(os.path.join(plugins_src, fname),
+                            os.path.join(plugins_dir, fname))
+            print(f"Installed plugin {fname} to {plugins_dir}/{fname}")
+
+    # OpenCode v2 does not discover agents inside a skill directory; copy the
+    # subagent definitions into the paired agents dir so @<name> works.
+    agents_src = os.path.join(skill['source'], 'agents')
+    agents_dir = opencode_agents_dir(target_dir)
+    if agents_dir and os.path.isdir(agents_src):
+        os.makedirs(agents_dir, exist_ok=True)
+        for fname in sorted(os.listdir(agents_src)):
+            if not fname.endswith('.md'):
+                continue
+            shutil.copyfile(os.path.join(agents_src, fname),
+                            os.path.join(agents_dir, fname))
+            print(f"Installed agent @{os.path.splitext(fname)[0]} to {agents_dir}/{fname}")
     return 0
 
 
@@ -181,7 +225,8 @@ def main():
         parser.print_help()
         return 0
 
-    skills = scan_skills('.')
+    repo_root = os.path.dirname(os.path.abspath(__file__))
+    skills = scan_skills(repo_root)
     if args.cmd == 'list':
         list_skills(skills)
         return 0
